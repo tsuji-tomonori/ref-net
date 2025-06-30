@@ -1,0 +1,1 @@
+# PaperRecords テーブル定義書

@@ -1,0 +1,92 @@
+{
+    // エディター設定
+    "editor.bracketPairColorization.enabled": true, // 括弧のペアを色分け
+    "editor.cursorSmoothCaretAnimation": "on", // カーソルのスムーズなアニメーション
+    "editor.cursorStyle": "line-thin", // カーソルスタイルを細いラインに設定
+    "editor.dragAndDrop": false, // ドラッグ＆ドロップ操作を無効化
+    "editor.fontFamily": "'Moralerspace Neon HWNF', Consolas, 'Courier New', monospace", // フォント設定
+    "editor.guides.bracketPairs": true, // 括弧ペアのガイドラインを表示
+    "editor.minimap.maxColumn": 80, // ミニマップの列幅制限
+    "editor.minimap.showSlider": "always", // ミニマップのスライダーを常に表示
+    "editor.mouseWheelZoom": true, // マウスホイールでズームを有効化
+    "editor.renderLineHighlight": "all", // 現在行の強調表示
+    "editor.renderWhitespace": "all", // 空白文字を常に表示
+    "editor.showFoldingControls": "always", // 折りたたみコントロールを常に表示
+    "editor.smoothScrolling": true, // スムーズスクロールを有効化
+    "editor.wordSegmenterLocales": "ja", // 日本語のセグメンテーション
+    "editor.wrappingIndent": "indent", // インデントを考慮した改行
+    "editor.formatOnSave": true, // 保存時にフォーマット
+    // エクスプローラー設定
+    "explorer.confirmDelete": false, // 削除確認を無効化
+    "explorer.confirmDragAndDrop": false, // ドラッグ＆ドロップの確認を無効化
+    // ファイル設定
+    "files.autoGuessEncoding": true, // ファイルエンコーディングを自動推測
+    "files.candidateGuessEncodings": [
+        "utf8",
+    ],
+    // 推測対象のエンコーディング
+    "files.insertFinalNewline": true, // 最後の改行を追加
+    "files.trimFinalNewlines": true, // 不要な末尾改行を削除
+    "files.trimTrailingWhitespace": true, // 不要な末尾の空白を削除
+    "files.watcherExclude": { // ファイル監視除外設定
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/.hg/store/**": true,
+        "**/build/**": true,
+    },
+    // Git設定
+    "git.autofetch": "all", // 全リポジトリの自動フェッチ
+    "git.confirmSync": false, // 同期確認を無効化
+    "git.suggestSmartCommit": true, // スマートコミットの提案を有効化
+    // SCM設定
+    "scm.alwaysShowRepositories": true, // 常にリポジトリを表示
+    "scm.defaultViewMode": "tree", // デフォルト表示モードをツリーに設定
+    "scm.diffDecorationsGutterWidth": 5, // 差分装飾のガター幅
+    "scm.inputFontFamily": "editor", // 入力フォントをエディターと同じに設定
+    // 問題タブ設定
+    "problems.defaultViewMode": "tree", // 問題タブをツリー構造で表示する
+    "problems.autoReveal": true, // 問題が発生した場合に、該当する問題を自動的に選択して表示する
+    "problems.showCurrentInStatus": true, // ステータスバーに現在の問題（エラーや警告）の数を表示する
+    "problems.sortOrder": "severity", // エラー（赤）、警告（黄）、情報（青）の順に表示
+    "problems.visibility": true, // 問題タブの表示
+    // 検索設定
+    "search.showLineNumbers": true, // 検索結果に行番号を表示
+    // ターミナル設定
+    "terminal.integrated.cursorBlinking": true, // カーソルの点滅を有効化
+    "terminal.integrated.cursorStyle": "line", // カーソルスタイルをラインに設定
+    "terminal.integrated.enableImages": true, // 画像表示を有効化
+    "terminal.integrated.enableVisualBell": true, // ビジュアルベルを有効化
+    "terminal.integrated.mouseWheelZoom": true, // マウスホイールでズームを有効化
+    "terminal.integrated.smoothScrolling": true, // スムーズスクロールを有効化
+    "terminal.integrated.copyOnSelection": true, // 選択時に自動コピー
+    "terminal.integrated.rightClickBehavior": "copyPaste", // 右クリックでコピー＆ペースト
+    "terminal.integrated.fontSize": 17, // フォントサイズ
+    // ワークベンチ設定
+    "workbench.editor.closeOnFileDelete": true, // ファイル削除時にエディターを閉じる
+    "workbench.editor.pinnedTabsOnSeparateRow": true, // ピン留めタブを別行に表示
+    "workbench.editor.scrollToSwitchTabs": true, // タブ切り替え時にスクロール
+    "workbench.editor.wrapTabs": true, // タブを折り返し表示
+    "workbench.list.smoothScrolling": true, // スムーズスクロール
+    "workbench.view.alwaysShowHeaderActions": true, // ヘッダーアクションを常に表示
+    "workbench.iconTheme": "material-icon-theme", // アイコンテーマ
+    // Python設定
+    "python.testing.pytestArgs": [
+        "tests" // テストディレクトリを指定
+    ],
+    "python.testing.unittestEnabled": false, // unittest を無効化
+    "python.testing.pytestEnabled": true, // pytest を有効化
+    "python.analysis.typeCheckingMode": "basic", // 型チェックモードを基本に設定
+    "python.analysis.diagnosticMode": "workspace", // ワークスペース全体を診断
+    "python.analysis.autoImportCompletions": true, // 自動インポートの補完を有効化
+    "python.analysis.useLibraryCodeForTypes": true, // ライブラリコードを型推論に使用
+    "python.analysis.include": [
+        "package/**/*.py", // パッケージ内の全ての Python ファイルを分析対象に含める
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff", // Python のデフォルトフォーマッターを ruff に設定
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit", // インポートの整理を有効化
+            "source.organizeImports.ruff": "explicit", // ruff によるインポートの整理を有効化
+        },
+    },
+}
