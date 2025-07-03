@@ -1,62 +1,109 @@
 ## 1. はじめに
 
 本設計書は、ObsidianによるRAG論文関係性の可視化システムのシステム設計をまとめたものである。
-本システムは、手動投入された論文IDを起点に、SQS→Lambda→Obsidianマークダウン自動生成→S3保存→DynamoDB登録→再投入フローを繰り返し、引用・被引用関係を重み付け順に処理する。
+本システムは、Docker Composeによるローカル環境で動作し、論文IDを起点に引用・被引用関係を再帰的に収集し、Obsidian用のマークダウンファイルを自動生成する。
 
 ## 2. システム全体構成
 
-```
-[ユーザー] →(手動投入)→ SQS (入力キュー)
-    ↓Lambda①
-Obsidian用Markdown生成 ─→ S3 (マークダウンファイル)
-    ↓DynamoDB登録
-引用・被引用情報取得・重み判定 → SQS (優先キュー)
-    ↓Lambda② (救い上げ)
-タイムアウト処理 → DynamoDBフラグ更新
+### 2.1 Docker Compose構成
 
-GitHub Actions: S3からマークダウン取得 → PR自動作成
+本システムはローカルPC上でDocker Composeを使用して動作する。以下のコンテナで構成される：
+
+```yaml
+# docker-compose.yml概要
+services:
+  # API Gateway & オーケストレーター
+  api:
+    - FastAPI/Flask
+    - 論文検索・登録エンドポイント
+    - ジョブキュー管理
+
+  # 論文メタデータ収集ワーカー
+  crawler:
+    - Semantic Scholar API連携
+    - 引用・被引用関係の収集
+    - メタデータ抽出
+
+  # PDF要約サービス
+  summarizer:
+    - PDFダウンロード・パース
+    - LLM連携（OpenAI/Claude API）
+    - 要約・キーワード抽出
+
+  # Markdownジェネレーター
+  markdown-generator:
+    - Obsidianフォーマット生成
+    - グラフビュー用メタデータ付与
+    - ファイル出力
+
+  # PostgreSQLデータベース
+  postgres:
+    - 論文メタデータ永続化
+    - 処理状態管理
+    - 関係性グラフデータ
+
+  # Redisキャッシュ&キュー
+  redis:
+    - ジョブキュー（Celery）
+    - APIレスポンスキャッシュ
+    - レート制限カウンター
 ```
 
-### 2.1 モノレポ構成
+### 2.2 データフロー
+
+```
+[ユーザー] → 論文ID投入
+    ↓
+Paper Processor → PostgreSQL
+    ↓
+Obsidian Vault (./output/)
+
+[ユーザー] → PDF要約リクエスト
+    ↓
+PDF Summarizer → PostgreSQL
+    ↓
+Obsidian Vault更新
+```
+
+### 2.3 モノレポ構成
 
 - ルートディレクトリ: Monorepo (MoonRepo)
 
   - `docs/` (設計書・仕様書)
   - `package/`
-
-    - `infra/` (CDKでAWSリソース定義)
-    - `batch/` (Lambda関数群、テストコード含む)
+    - `api/` (FastAPI/Flaskアプリケーション)
+    - `crawler/` (論文メタデータ収集ワーカー)
+    - `summarizer/` (PDF要約サービス)
+    - `generator/` (Markdownジェネレーター)
+    - `shared/` (共通ライブラリ・モデル)
+  - `docker/` (Dockerfile群)
+  - `output/` (生成されたObsidianファイル)
 
 ## 3. コンポーネント設計
 
-### 3.1 SQS キュー
+### 3.1 Paper Processorサービス
 
-- 入力キュー: `paper-processing-queue`
+- コマンドライン実行: `python -m paper_processor <paper_id>`
+- 機能:
+  1. Semantic Scholar APIから論文情報取得
+  2. 引用・被引用関係の収集
+  3. PostgreSQLにデータ保存
+  4. Obsidian形式のMarkdown生成
+  5. 重み付けによる再帰的処理
+- レート制限対応（リトライ・バックオフ）
 
-  - イベント: `{ paper_id: string }`
-  - 可視性タイムアウト: 1日
-  - メッセージ保持期間: 1日
-- 救い上げキュー (DLQとは別): `paper-retry-queue`
+### 3.2 PDF Summarizerサービス
 
-  - 手動または自動クリア用
+- コマンドライン実行: `python -m pdf_summarizer <paper_id>`
+- 機能:
+  1. PostgreSQLから論文情報取得
+  2. PDF URL取得・ダウンロード
+  3. テキスト抽出（PyPDF2/pdfplumber）
+  4. LLM APIで要約生成
+  5. PostgreSQLに要約保存
+  6. Markdownファイル更新
 
-### 3.2 Lambda① (初期処理)
-
-- トリガー: `paper-processing-queue`
-- 用途:
-
-  1. Semantic Scholar APIから論文情報・参照・引用リスト取得
-  2. Obsidianマークダウン生成
-  3. S3へファイル保存 (`bucket/〈paper_id〉.md`)
-  4. DynamoDBにレコード登録/更新
-  5. 参照・引用先を重み付け順にSQSへ登録
-- 入力例:
-
-  ```json
-  { "paper_id": "10.1234/abcd.efgh" }
-  ```
-
-#### 3.2.1 Semantic Scholar API利用
+### 3.3 Semantic Scholar API利用
 
 - エンドポイント: `https://api.semanticscholar.org/graph/v1/paper/{paper_id}`
 - 取得フィールド:
@@ -68,93 +115,135 @@ GitHub Actions: S3からマークダウン取得 → PR自動作成
   - 1000リクエスト/5分（API key使用時）
 - エラーハンドリング: 404 (論文未発見), 429 (レート制限), 500 (サーバエラー)
 
-### 3.3 Lambda② (救い上げ処理)
+### 3.4 PostgreSQLデータベース
 
-- 実行方法: Lambdaコンソールから手動起動
-- 用途:
+#### 3.4.1 テーブル設計
 
-  - `paper-processing-queue`から期限切れで消失したIDをDynamoDBから取得
-  - まだ未処理フラグの論文を再度Semantic Scholar APIで取得 → マークダウン生成 → S3
-  - 処理完了フラグ更新
+- **papers**テーブル:
+  - `paper_id` (VARCHAR, PK)
+  - `title` (TEXT)
+  - `authors` (JSONB)
+  - `year` (INTEGER)
+  - `abstract` (TEXT)
+  - `citation_count` (INTEGER)
+  - `fields_of_study` (JSONB)
+  - `pdf_url` (TEXT)
+  - `summary` (TEXT) - AI生成要約
+  - `keywords` (JSONB) - AI抽出キーワード
+  - `processed_at` (TIMESTAMP)
+  - `created_at` (TIMESTAMP)
+  - `updated_at` (TIMESTAMP)
 
-### 3.4 S3 バケット
+- **paper_relations**テーブル:
+  - `source_paper_id` (VARCHAR, FK)
+  - `target_paper_id` (VARCHAR, FK)
+  - `relation_type` (ENUM: 'cites', 'cited_by')
+  - `created_at` (TIMESTAMP)
+  - PRIMARY KEY (source_paper_id, target_paper_id, relation_type)
 
-- 用途: Markdownファイルの保存先
-- ファイル構成: `papers/〈paper_id〉.md`
-- バージョニング: 有効化
+- **processing_queue**テーブル:
+  - `id` (SERIAL, PK)
+  - `paper_id` (VARCHAR)
+  - `priority` (INTEGER) - 重み付けスコア
+  - `status` (ENUM: 'pending', 'processing', 'completed', 'failed')
+  - `retry_count` (INTEGER)
+  - `error_message` (TEXT)
+  - `created_at` (TIMESTAMP)
+  - `updated_at` (TIMESTAMP)
 
-### 3.5 DynamoDB テーブル
+#### 3.4.2 インデックス
 
-- テーブル名: `PaperRecords`
-- PK: `paper_id` (文字列)
-- 属性:
-
-  - `processed`: boolean (処理完了フラグ)
-  - `citation_count`: number
-  - `reference_count`: number
-  - `last_updated`: ISO8601 timestamp
+- `idx_papers_year` (year)
+- `idx_papers_citation` (citation_count DESC)
+- `idx_queue_status_priority` (status, priority DESC)
+- `idx_relations_target` (target_paper_id)
 
 ## 4. ワークフロー詳細
 
-1. ユーザーが論文IDイベントを`paper-processing-queue`へ手動投入
-2. Lambda①起動 → Semantic Scholar APIから論文メタ取得 → Markdown生成 → S3保存
-3. 同時にDynamoDBにレコード作成 (processed=false)
-4. 取得した参照・引用データから重み付け (=引用数+参照数) を計算
-5. 重み順に同キューへ新規エントリ投入
-6. キュー期限切れ分はLambda②で補完処理（Semantic Scholar API再呼び出し）
-7. S3上のMarkdownはGitHub Actionsで定期pull & PR作成
+### 4.1 論文メタデータ収集フロー
 
-## 5. テスト・CI/CD
+1. ユーザーがPaper Processorに論文IDを指定
+2. Semantic Scholar APIから論文情報取得
+3. PostgreSQLにメタデータ保存
+4. Obsidian形式のMarkdown生成・保存
+5. 引用・被引用論文を重み付け順に再帰的処理
+
+### 4.2 PDF要約フロー（独立サイクル）
+
+1. ユーザーがPDF Summarizerに論文IDを指定
+2. PostgreSQLから論文情報取得
+3. PDF URL取得・ダウンロード
+4. LLM APIで要約生成
+5. PostgreSQLに要約保存
+6. 既存Markdownファイルを更新
+
+## 5. コンテナ間通信
+
+### 5.1 ネットワーク構成
+
+- Docker Composeネットワーク: `refnet-network`
+- コンテナ名で相互参照
+- ポートマッピング:
+  - PostgreSQL: 5432:5432
+
+### 5.2 環境変数
+
+```yaml
+# .envファイル
+DATABASE_URL=postgresql://user:password@postgres:5432/refnet
+SEMANTIC_SCHOLAR_API_KEY=オプション
+OPENAI_API_KEY=PDF要約用
+OUTPUT_DIR=./output
+```
+
+## 6. テスト・CI/CD
 
 - テスト駆動開発 (TDD): pytest + MyPy + Ruff
-- CI/CD: GitHub Actions
+- モック化: 外部API・データベース接続
 
-  - プッシュ時: インフラ(CDK synth/test)、ユニットテスト実行
-  - スケジュール: 既存S3ファイル pull & PR作成
+## 7. 非機能要件
 
-## 6. 非機能要件
-
-- コスト最適化: サーバレス＆従量課金
-- 可用性: SQSの保持期間切れを救い上げLambdaで補完
+- ローカル実行: Docker Composeで完結
+- シンプルな構成: 必要最小限のコンテナと依存関係
+- レート制限対応: リトライ・バックオフ
 - 運用性: Monorepo管理 + MoonRepo
 
-## 7. 図表作成指針
+## 8. 図表作成指針
 
-### 7.1 アーキテクチャ図
+### 8.1 アーキテクチャ図
 
-- AWSサービス間の関係をdrawioで表現
-- ユーザー → SQS → Lambda① → (S3, DynamoDB) → Lambda② の主要フロー
-- Semantic Scholar APIへの外部接続
-- GitHub Actionsによる定期処理
-- 詳細: [architecture.drawio](../design/architecture.drawio)
+- Docker Composeコンテナ構成をMermaidで表現
+- ユーザー → Paper Processor/PDF Summarizer → PostgreSQL → Obsidian Vault
+- Semantic Scholar API・LLM APIへの外部接続
+- 詳細: [architecture.md](../design/architecture.md)
 
-### 7.2 シーケンス図
+### 8.2 シーケンス図
 
-- アクター: User, SQS, Lambda①, SemanticScholar, S3, DynamoDB, Lambda②
-- 正常フロー: 論文ID投入から重み付け再投入まで
-- 異常フロー: 救い上げ処理とエラーハンドリング
+- アクター: User, PaperProcessor, PDFSummarizer, PostgreSQL, SemanticScholar, LLM
+- メタデータ収集フロー: 論文ID投入から再帰的処理
+- PDF要約フロー: 独立した要約処理
 - 詳細: [sequence.md](../design/sequence.md)
 
-### 7.3 フローチャート図
+### 8.3 フローチャート図
 
-- Lambda①の処理フロー（API呼び出し → マークダウン生成 → 保存 → 重み計算 → 再投入）
-- Lambda②の処理フロー（救い上げ処理とエラーハンドリング）
+- Paper Processor処理フロー
+- PDF Summarizer処理フロー
 - 詳細:
-  - [Lambda① 初期処理](../spec/flowchart/lambda_initial.md)
-  - [Lambda② 救い上げ処理](../spec/flowchart/lambda_retry.md)
+  - [Paper Processor](../spec/flowchart/paper_processor.md)
+  - [PDF Summarizer](../spec/flowchart/pdf_summarizer.md)
 
-### 7.4 テーブル定義書
+### 8.4 テーブル定義書
 
-- PaperRecordsテーブル: PK, 属性, データ型, 制約
-- インデックス設計: GSI不要（単純なPK検索のみ）
-- TTL設定: 不要（永続保存）
-- 詳細: [PaperRecords](../spec/table/paper_records.md)
+- papers テーブル: 論文メタデータ
+- paper_relations テーブル: 引用関係
+- processing_queue テーブル: 処理キュー
+- 詳細: [PostgreSQLテーブル](../spec/table/postgresql_tables.md)
 
-### 7.5 ストレージ仕様書
+### 8.5 ストレージ仕様書
 
-- S3バケット設計: フォルダ構成, ファイル命名規則, アクセス権限
-- DynamoDB容量設計: オンデマンドとプロビジョニング比較
-- データライフサイクル: バージョニング, 削除ポリシー
+- ローカル出力ディレクトリ: `./output/`
+- Markdownファイル命名規則: `{paper_id}.md`
+- PostgreSQLデータベース容量設計
 - 詳細:
-  - [S3バケット](../spec/storage/s3_bucket.md)
-  - [DynamoDBテーブル](../spec/storage/dynamodb_table.md)
+  - [ローカルストレージ](../spec/storage/local_storage.md)
+  - [PostgreSQL容量](../spec/storage/postgresql_capacity.md)
