@@ -37,20 +37,13 @@ graph TB
     %% 出力
     Obsidian[Obsidian Vault<br/>./output/]
 
-    %% ユーザー → API Gateway
+    %% 依存関係
     User --> API
-
-    %% API Gateway → 処理サービス
     API --> Crawler
     API --> Summarizer
-
-    %% 処理サービス → データストア
+    Crawler --> Generator
     処理サービス --> データストア
-
-    %% 処理サービス → 外部API
     処理サービス --> 外部API
-
-    %% 処理サービス → 出力
     処理サービス --> Obsidian
 ```
 
