@@ -43,20 +43,15 @@ graph TB
     %% API Gateway → 処理サービス
     API --> Crawler
     API --> Summarizer
-    API --> Generator
 
     %% 処理サービス → データストア
-    Crawler --> PostgreSQL
-    Crawler --> Redis
-    Summarizer --> PostgreSQL
-    Generator --> PostgreSQL
+    処理サービス --> データストア
 
     %% 処理サービス → 外部API
-    Crawler --> SemanticAPI
-    Summarizer --> LLMAPI
+    処理サービス --> 外部API
 
     %% 処理サービス → 出力
-    Generator --> Obsidian
+    処理サービス --> Obsidian
 ```
 
 ## データフロー詳細
