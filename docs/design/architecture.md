@@ -47,50 +47,9 @@ graph TB
     処理サービス --> Obsidian
 ```
 
-## データフロー詳細
+## データフロー概要
 
-### 論文メタデータ収集フロー
-
-```mermaid
-sequenceDiagram
-    participant User as ユーザー
-    participant API as API Gateway
-    participant Crawler as Crawler
-    participant DB as PostgreSQL
-    participant SA as Semantic Scholar API
-    participant OV as Obsidian Vault
-
-    User->>API: 論文ID投入
-    API->>Crawler: 論文処理開始
-    Crawler->>SA: 論文情報取得
-    SA-->>Crawler: メタデータ返却
-    Crawler->>DB: メタデータ保存
-    Crawler->>API: 処理完了通知
-    API->>Generator: Markdown生成要求
-    Generator->>DB: 論文情報取得
-    Generator->>OV: Obsidian形式で保存
-```
-
-### PDF要約フロー
-
-```mermaid
-sequenceDiagram
-    participant User as ユーザー
-    participant API as API Gateway
-    participant Summarizer as Summarizer
-    participant DB as PostgreSQL
-    participant LLM as LLM API
-    participant OV as Obsidian Vault
-
-    User->>API: PDF要約リクエスト
-    API->>Summarizer: 要約処理開始
-    Summarizer->>DB: 論文情報取得
-    Summarizer->>Summarizer: PDF取得・パース
-    Summarizer->>LLM: 要約生成要求
-    LLM-->>Summarizer: 要約結果返却
-    Summarizer->>DB: 要約保存
-    Summarizer->>OV: Markdownファイル更新
-```
+データフローの詳細なシーケンス図は [sequence.md](./sequence.md) を参照してください。
 
 ## コンテナ間通信
 
