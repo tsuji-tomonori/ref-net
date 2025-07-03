@@ -37,23 +37,20 @@ graph TB
     %% 出力
     Obsidian[Obsidian Vault<br/>./output/]
 
-    %% 接続関係
+    %% 接続関係（ユーザーからAPIのみ）
     User --> API
 
-    %% API Gateway → キュー経由での処理
-    API --> Redis
-
-    %% 処理サービス → データストア
+    %% 処理サービス → データストア・キュー
     Crawler --> PostgreSQL
     Crawler --> Redis
     Summarizer --> PostgreSQL
     Generator --> PostgreSQL
 
-    %% 外部API接続
+    %% 処理サービス → 外部API
     Crawler --> SemanticAPI
     Summarizer --> LLMAPI
 
-    %% 出力
+    %% 処理サービス → 出力
     Generator --> Obsidian
 ```
 
