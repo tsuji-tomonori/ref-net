@@ -37,10 +37,15 @@ graph TB
     %% 出力
     Obsidian[Obsidian Vault<br/>./output/]
 
-    %% 接続関係（ユーザーからAPIのみ）
+    %% ユーザー → API Gateway
     User --> API
 
-    %% 処理サービス → データストア・キュー
+    %% API Gateway → 処理サービス
+    API --> Crawler
+    API --> Summarizer
+    API --> Generator
+
+    %% 処理サービス → データストア
     Crawler --> PostgreSQL
     Crawler --> Redis
     Summarizer --> PostgreSQL
