@@ -40,10 +40,8 @@ graph TB
     %% 接続関係
     User --> API
 
-    %% API Gateway → 処理サービス
-    API --> Crawler
-    API --> Summarizer
-    API --> Generator
+    %% API Gateway → キュー経由での処理
+    API --> Redis
 
     %% 処理サービス → データストア
     Crawler --> PostgreSQL
@@ -57,11 +55,6 @@ graph TB
 
     %% 出力
     Generator --> Obsidian
-
-    %% データフロー（破線）
-    Crawler -.->|メタデータ| PostgreSQL
-    PostgreSQL -.->|論文情報| Generator
-    Generator -.->|Markdownファイル| Obsidian
 ```
 
 ## データフロー詳細
