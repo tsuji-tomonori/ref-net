@@ -26,7 +26,7 @@ flowchart TD
     ParseData --> SaveDB[PostgreSQLに保存]
     SaveDB --> GenerateMD
     
-    GenerateMD --> OutputFile[Obsidianファイル出力<br/>/output/{paper_id}.md]
+    GenerateMD --> OutputFile["Obsidianファイル出力<br/>/output/{paper_id}.md"]
     
     OutputFile --> GetRelations[引用・被引用関係取得]
     
@@ -88,7 +88,7 @@ stateDiagram-v2
 flowchart LR
     Paper[論文] --> Factors[評価要素]
     
-    Factors --> Citation[引用数<br/>log10(count + 1)]
+    Factors --> Citation["引用数<br/>log10(count + 1)"]
     Factors --> Year[発行年<br/>新しいほど高]
     Factors --> Field[分野一致<br/>起点と同じ分野]
     

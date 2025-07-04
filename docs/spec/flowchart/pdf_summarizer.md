@@ -53,7 +53,7 @@ flowchart TD
     ErrorLLM --> End
     
     ParseResult --> SaveDB[PostgreSQL更新<br/>summary, keywords]
-    SaveDB --> UpdateMD[Markdownファイル更新<br/>/output/{paper_id}.md]
+    SaveDB --> UpdateMD["Markdownファイル更新<br/>/output/{paper_id}.md"]
     UpdateMD --> End
     
     style Start fill:#90EE90
