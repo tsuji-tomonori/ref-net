@@ -117,46 +117,14 @@ Obsidian Vault更新
 
 ### 3.4 PostgreSQLデータベース
 
-#### 3.4.1 テーブル設計
+論文メタデータ、引用関係、処理キューを管理するためのリレーショナルデータベース。
 
-- **papers**テーブル:
-  - `paper_id` (VARCHAR, PK)
-  - `title` (TEXT)
-  - `authors` (JSONB)
-  - `year` (INTEGER)
-  - `abstract` (TEXT)
-  - `citation_count` (INTEGER)
-  - `fields_of_study` (JSONB)
-  - `pdf_url` (TEXT)
-  - `summary` (TEXT) - AI生成要約
-  - `keywords` (JSONB) - AI抽出キーワード
-  - `processed_at` (TIMESTAMP)
-  - `created_at` (TIMESTAMP)
-  - `updated_at` (TIMESTAMP)
+主要テーブル:
+- **papers**: 論文メタデータ（Semantic Scholar APIから取得した情報とAI生成要約）
+- **paper_relations**: 論文間の引用・被引用関係
+- **processing_queue**: 再帰的処理のためのジョブキュー
 
-- **paper_relations**テーブル:
-  - `source_paper_id` (VARCHAR, FK)
-  - `target_paper_id` (VARCHAR, FK)
-  - `relation_type` (ENUM: 'cites', 'cited_by')
-  - `created_at` (TIMESTAMP)
-  - PRIMARY KEY (source_paper_id, target_paper_id, relation_type)
-
-- **processing_queue**テーブル:
-  - `id` (SERIAL, PK)
-  - `paper_id` (VARCHAR)
-  - `priority` (INTEGER) - 重み付けスコア
-  - `status` (ENUM: 'pending', 'processing', 'completed', 'failed')
-  - `retry_count` (INTEGER)
-  - `error_message` (TEXT)
-  - `created_at` (TIMESTAMP)
-  - `updated_at` (TIMESTAMP)
-
-#### 3.4.2 インデックス
-
-- `idx_papers_year` (year)
-- `idx_papers_citation` (citation_count DESC)
-- `idx_queue_status_priority` (status, priority DESC)
-- `idx_relations_target` (target_paper_id)
+詳細なテーブル定義、ER図、インデックス設計については [PostgreSQLテーブル定義書](../spec/table/postgresql_tables.md) を参照。
 
 ## 4. ワークフロー詳細
 
