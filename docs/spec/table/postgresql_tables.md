@@ -12,8 +12,10 @@ erDiagram
         integer year
         text abstract
         integer citation_count
+        integer corpus_id
         varchar venue_id
         varchar journal_id
+        boolean is_open_access
         text summary
     }
     
@@ -44,6 +46,7 @@ erDiagram
         varchar source_paper_id
         varchar target_paper_id
         varchar relation_type
+        integer hop_count
     }
     
     papers ||--o{ paper_authors : contains
@@ -106,18 +109,18 @@ erDiagram
 | カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
 |---------|---------|----------|-------------|------|
 | paper_id | VARCHAR(100) | NO | - | 論文の一意識別子（Primary Key）。Semantic ScholarのpaperId |
-| title | TEXT | YES | NULL | 論文タイトル |
-| year | INTEGER | YES | NULL | 出版年 |
-| abstract | TEXT | YES | NULL | 論文要約 |
-| citation_count | INTEGER | YES | 0 | 被引用数 |
-| influential_citation_count | INTEGER | YES | 0 | 影響力のある引用数 |
-| reference_count | INTEGER | YES | 0 | 参照論文数 |
+| title | TEXT | NO | - | 論文タイトル（API必須フィールド） |
+| year | INTEGER | YES | NULL | 出版年（一部論文で不明な場合がある） |
+| abstract | TEXT | YES | NULL | 論文要約（著作権により欠損の場合がある） |
+| citation_count | INTEGER | NO | 0 | 被引用数（API必須フィールド） |
+| influential_citation_count | INTEGER | NO | 0 | 影響力のある引用数（API必須フィールド） |
+| reference_count | INTEGER | NO | 0 | 参照論文数（API必須フィールド） |
 | venue | TEXT | YES | NULL | 出版会場名（非正規化、検索用） |
 | venue_id | VARCHAR(100) | YES | NULL | 出版会場ID（Foreign Key → venues.venue_id） |
 | publication_date | DATE | YES | NULL | 出版日（YYYY-MM-DD形式） |
 | journal_id | VARCHAR(100) | YES | NULL | ジャーナルID（Foreign Key → journals.journal_id） |
-| corpus_id | TEXT | YES | NULL | Semantic ScholarのcorpusId |
-| is_open_access | BOOLEAN | YES | FALSE | オープンアクセスかどうか |
+| corpus_id | INTEGER | YES | NULL | Semantic ScholarのcorpusId（API必須だが型変更） |
+| is_open_access | BOOLEAN | NO | FALSE | オープンアクセスかどうか（API必須フィールド） |
 | open_access_pdf_url | TEXT | YES | NULL | オープンアクセスPDFのURL |
 | open_access_pdf_status | TEXT | YES | NULL | オープンアクセスのステータス（HYBRID, GOLD等） |
 | open_access_pdf_license | TEXT | YES | NULL | オープンアクセスのライセンス（CCBY等） |
@@ -310,6 +313,7 @@ AI生成キーワードを管理するテーブル。
 | source_paper_id | VARCHAR(100) | NO | - | 元論文ID（Foreign Key → papers.paper_id） |
 | target_paper_id | VARCHAR(100) | NO | - | 対象論文ID（Foreign Key → papers.paper_id） |
 | relation_type | VARCHAR(20) | NO | - | 関係種別。'cites'（引用）または 'cited_by'（被引用） |
+| hop_count | INTEGER | NO | - | 起点論文からのホップ数（距離）。起点=0、直接引用=1、間接引用=2以上 |
 | created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
 
 **制約:**
@@ -317,11 +321,13 @@ AI生成キーワードを管理するテーブル。
 - FOREIGN KEY: `source_paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
 - FOREIGN KEY: `target_paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
 - CHECK: `relation_type IN ('cites', 'cited_by')`
+- CHECK: `hop_count >= 0`
 
 **インデックス:**
 - PRIMARY KEY: 複合キー
 - INDEX: `idx_relations_target` (target_paper_id)
 - INDEX: `idx_relations_type` (relation_type)
+- INDEX: `idx_relations_hop_count` (hop_count)
 
 ### 2.11 processing_queue テーブル
 
@@ -378,13 +384,36 @@ AI生成キーワードを管理するテーブル。
 `processing_queue.priority` の算出ロジック：
 
 ```
-priority = base_score * recency_factor * citation_factor
+priority = base_score * distance_factor * recency_factor * citation_factor
 
 where:
-  base_score = 100 (起点論文からの距離に応じて減衰)
-  recency_factor = 1.0 + (current_year - paper_year) * 0.1
+  base_score = 1000 (基準スコア)
+  distance_factor = exp(-0.5 * hop_count) (指数減衰関数)
+  recency_factor = max(0.1, 1.0 - (current_year - paper_year) * 0.05)
   citation_factor = log10(citation_count + 1)
 ```
+
+#### 4.1.1 距離減衰ロジック（distance_factor）
+
+起点論文からのホップ数に基づく指数減衰：
+
+```
+distance_factor = exp(-λ * hop_count)
+
+λ = 0.5 (減衰定数)
+
+hop_count = 0: distance_factor = 1.000 (起点論文)
+hop_count = 1: distance_factor = 0.607 (直接引用)
+hop_count = 2: distance_factor = 0.368 (2次引用)
+hop_count = 3: distance_factor = 0.223 (3次引用)
+hop_count = 4: distance_factor = 0.135 (4次引用)
+hop_count ≥ 5: distance_factor < 0.1 (実質的に低優先)
+```
+
+この設計により：
+- 起点論文から離れるほど処理優先度が大幅に低下
+- 3ホップ以降は重要度が大幅に減少
+- 探索の広がりを制御し、関連性の高い論文を優先処理
 
 ### 4.2 トランザクション設計
 
