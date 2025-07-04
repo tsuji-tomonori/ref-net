@@ -2,119 +2,99 @@
 
 ## 1. ER図
 
+### 1.1 メインエンティティ関係図
+
 ```mermaid
 erDiagram
     papers {
-        VARCHAR paper_id PK
-        TEXT title
-        INTEGER year
-        TEXT abstract
-        INTEGER citation_count
-        INTEGER influential_citation_count
-        INTEGER reference_count
-        TEXT venue
-        VARCHAR venue_id FK
-        DATE publication_date
-        VARCHAR journal_id FK
-        TEXT corpus_id
-        BOOLEAN is_open_access
-        TEXT open_access_pdf_url
-        TEXT open_access_pdf_status
-        TEXT open_access_pdf_license
-        TEXT pdf_url
-        TEXT summary
-        TIMESTAMP processed_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+        varchar paper_id
+        text title
+        integer year
+        text abstract
+        integer citation_count
+        varchar venue_id
+        varchar journal_id
+        text summary
     }
-
-    paper_authors {
-        VARCHAR paper_id FK
-        VARCHAR author_id FK
-        INTEGER author_order
-        TIMESTAMP created_at
-    }
-
+    
     authors {
-        VARCHAR author_id PK
-        TEXT name
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+        varchar author_id
+        text name
     }
-
-    paper_fields_of_study {
-        VARCHAR paper_id FK
-        VARCHAR field_name
-        VARCHAR source
-        TIMESTAMP created_at
-    }
-
+    
     venues {
-        VARCHAR venue_id PK
-        TEXT name
-        TEXT type
-        TEXT url
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+        varchar venue_id
+        text name
+        text type
     }
-
-    venue_alternate_names {
-        VARCHAR venue_id FK
-        TEXT alternate_name
-        TIMESTAMP created_at
-    }
-
+    
     journals {
-        VARCHAR journal_id PK
-        TEXT name
-        TEXT volume
-        TEXT pages
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+        varchar journal_id
+        text name
+        text volume
     }
-
-    paper_external_ids {
-        VARCHAR paper_id FK
-        TEXT external_source
-        TEXT external_id
-        TIMESTAMP created_at
+    
+    paper_authors {
+        varchar paper_id
+        varchar author_id
+        integer author_order
     }
-
-    paper_keywords {
-        VARCHAR paper_id FK
-        TEXT keyword
-        TIMESTAMP created_at
-    }
-
+    
     paper_relations {
-        VARCHAR source_paper_id FK
-        VARCHAR target_paper_id FK
-        VARCHAR relation_type
-        TIMESTAMP created_at
+        varchar source_paper_id
+        varchar target_paper_id
+        varchar relation_type
     }
-
-    processing_queue {
-        SERIAL id PK
-        VARCHAR paper_id
-        INTEGER priority
-        VARCHAR status
-        INTEGER retry_count
-        TEXT error_message
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-
-    papers ||--o{ paper_authors : "has authors"
-    authors ||--o{ paper_authors : "authored papers"
-    papers ||--o{ paper_fields_of_study : "has fields"
+    
+    papers ||--o{ paper_authors : contains
+    authors ||--o{ paper_authors : writes
     papers ||--o{ venues : "published in"
-    venues ||--o{ venue_alternate_names : "has alternate names"
-    papers ||--o{ journals : "published in journal"
+    papers ||--o{ journals : "appears in"
+    papers ||--o{ paper_relations : cites
+    papers ||--o{ paper_relations : "cited by"
+```
+
+### 1.2 詳細属性テーブル
+
+```mermaid
+erDiagram
+    papers {
+        varchar paper_id
+    }
+    
+    paper_fields_of_study {
+        varchar paper_id
+        varchar field_name
+        varchar source
+    }
+    
+    paper_external_ids {
+        varchar paper_id
+        text external_source
+        text external_id
+    }
+    
+    paper_keywords {
+        varchar paper_id
+        text keyword
+    }
+    
+    venue_alternate_names {
+        varchar venue_id
+        text alternate_name
+    }
+    
+    processing_queue {
+        serial id
+        varchar paper_id
+        integer priority
+        varchar status
+    }
+    
+    papers ||--o{ paper_fields_of_study : "has fields"
     papers ||--o{ paper_external_ids : "has external ids"
     papers ||--o{ paper_keywords : "has keywords"
-    papers ||--o{ paper_relations : "has citations"
-    papers ||--o{ paper_relations : "has references"
-    papers ||--o| processing_queue : "queued for processing"
+    papers ||--o{ processing_queue : "queued for processing"
 ```
 
 ## 2. テーブル詳細仕様
