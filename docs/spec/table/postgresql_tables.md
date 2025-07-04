@@ -7,28 +7,83 @@ erDiagram
     papers {
         VARCHAR paper_id PK
         TEXT title
-        JSONB authors
         INTEGER year
         TEXT abstract
         INTEGER citation_count
         INTEGER influential_citation_count
         INTEGER reference_count
-        JSONB fields_of_study
-        JSONB s2_fields_of_study
         TEXT venue
-        JSONB publication_venue
+        VARCHAR venue_id FK
         DATE publication_date
-        JSONB journal
-        JSONB external_ids
+        VARCHAR journal_id FK
         TEXT corpus_id
         BOOLEAN is_open_access
-        JSONB open_access_pdf
+        TEXT open_access_pdf_url
+        TEXT open_access_pdf_status
+        TEXT open_access_pdf_license
         TEXT pdf_url
         TEXT summary
-        JSONB keywords
         TIMESTAMP processed_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+    }
+
+    paper_authors {
+        VARCHAR paper_id FK
+        VARCHAR author_id FK
+        INTEGER author_order
+        TIMESTAMP created_at
+    }
+
+    authors {
+        VARCHAR author_id PK
+        TEXT name
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    paper_fields_of_study {
+        VARCHAR paper_id FK
+        VARCHAR field_name
+        VARCHAR source
+        TIMESTAMP created_at
+    }
+
+    venues {
+        VARCHAR venue_id PK
+        TEXT name
+        TEXT type
+        TEXT url
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    venue_alternate_names {
+        VARCHAR venue_id FK
+        TEXT alternate_name
+        TIMESTAMP created_at
+    }
+
+    journals {
+        VARCHAR journal_id PK
+        TEXT name
+        TEXT volume
+        TEXT pages
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    paper_external_ids {
+        VARCHAR paper_id FK
+        TEXT external_source
+        TEXT external_id
+        TIMESTAMP created_at
+    }
+
+    paper_keywords {
+        VARCHAR paper_id FK
+        TEXT keyword
+        TIMESTAMP created_at
     }
 
     paper_relations {
@@ -49,6 +104,14 @@ erDiagram
         TIMESTAMP updated_at
     }
 
+    papers ||--o{ paper_authors : "has authors"
+    authors ||--o{ paper_authors : "authored papers"
+    papers ||--o{ paper_fields_of_study : "has fields"
+    papers ||--o{ venues : "published in"
+    venues ||--o{ venue_alternate_names : "has alternate names"
+    papers ||--o{ journals : "published in journal"
+    papers ||--o{ paper_external_ids : "has external ids"
+    papers ||--o{ paper_keywords : "has keywords"
     papers ||--o{ paper_relations : "has citations"
     papers ||--o{ paper_relations : "has references"
     papers ||--o| processing_queue : "queued for processing"
@@ -64,36 +127,201 @@ erDiagram
 |---------|---------|----------|-------------|------|
 | paper_id | VARCHAR(100) | NO | - | 論文の一意識別子（Primary Key）。Semantic ScholarのpaperId |
 | title | TEXT | YES | NULL | 論文タイトル |
-| authors | JSONB | YES | NULL | 著者情報の配列。各要素は `{authorId, name}` 形式 |
 | year | INTEGER | YES | NULL | 出版年 |
 | abstract | TEXT | YES | NULL | 論文要約 |
 | citation_count | INTEGER | YES | 0 | 被引用数 |
 | influential_citation_count | INTEGER | YES | 0 | 影響力のある引用数 |
 | reference_count | INTEGER | YES | 0 | 参照論文数 |
-| fields_of_study | JSONB | YES | NULL | 研究分野の配列（外部ソース） |
-| s2_fields_of_study | JSONB | YES | NULL | Semantic Scholar分類の研究分野。`[{category, source}]` 形式 |
-| venue | TEXT | YES | NULL | 出版会場名 |
-| publication_venue | JSONB | YES | NULL | 出版会場詳細。`{id, name, type, alternate_names, url}` 形式 |
+| venue | TEXT | YES | NULL | 出版会場名（非正規化、検索用） |
+| venue_id | VARCHAR(100) | YES | NULL | 出版会場ID（Foreign Key → venues.venue_id） |
 | publication_date | DATE | YES | NULL | 出版日（YYYY-MM-DD形式） |
-| journal | JSONB | YES | NULL | ジャーナル情報。`{name, volume, pages}` 形式 |
-| external_ids | JSONB | YES | NULL | 外部ID。`{DOI, ArXiv, MAG, ACL, PubMed, DBLP}` 等 |
+| journal_id | VARCHAR(100) | YES | NULL | ジャーナルID（Foreign Key → journals.journal_id） |
 | corpus_id | TEXT | YES | NULL | Semantic ScholarのcorpusId |
 | is_open_access | BOOLEAN | YES | FALSE | オープンアクセスかどうか |
-| open_access_pdf | JSONB | YES | NULL | オープンアクセスPDF情報。`{url, status, license}` 形式 |
+| open_access_pdf_url | TEXT | YES | NULL | オープンアクセスPDFのURL |
+| open_access_pdf_status | TEXT | YES | NULL | オープンアクセスのステータス（HYBRID, GOLD等） |
+| open_access_pdf_license | TEXT | YES | NULL | オープンアクセスのライセンス（CCBY等） |
 | pdf_url | TEXT | YES | NULL | PDFのURL（オープンアクセスまたは取得可能な場合） |
 | summary | TEXT | YES | NULL | AI生成要約（PDF Summarizerで生成） |
-| keywords | JSONB | YES | NULL | AI抽出キーワード配列（PDF Summarizerで生成） |
 | processed_at | TIMESTAMP | YES | NULL | メタデータ処理完了日時 |
 | created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
 | updated_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード更新日時 |
+
+**制約:**
+- PRIMARY KEY: `paper_id`
+- FOREIGN KEY: `venue_id` REFERENCES venues(venue_id)
+- FOREIGN KEY: `journal_id` REFERENCES journals(journal_id)
 
 **インデックス:**
 - PRIMARY KEY: `paper_id`
 - INDEX: `idx_papers_year` (year)
 - INDEX: `idx_papers_citation` (citation_count DESC)
 - INDEX: `idx_papers_corpus_id` (corpus_id)
+- INDEX: `idx_papers_venue_id` (venue_id)
+- INDEX: `idx_papers_journal_id` (journal_id)
 
-### 2.2 paper_relations テーブル
+### 2.2 paper_authors テーブル
+
+論文と著者の多対多関係を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| paper_id | VARCHAR(100) | NO | - | 論文ID（Foreign Key → papers.paper_id） |
+| author_id | VARCHAR(100) | NO | - | 著者ID（Foreign Key → authors.author_id） |
+| author_order | INTEGER | NO | - | 著者の順序（第一著者=1、第二著者=2...） |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+
+**制約:**
+- PRIMARY KEY: `(paper_id, author_id)`
+- FOREIGN KEY: `paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
+- FOREIGN KEY: `author_id` REFERENCES authors(author_id) ON DELETE CASCADE
+- CHECK: `author_order > 0`
+
+**インデックス:**
+- PRIMARY KEY: 複合キー
+- INDEX: `idx_paper_authors_order` (paper_id, author_order)
+- INDEX: `idx_paper_authors_author_id` (author_id)
+
+### 2.3 authors テーブル
+
+著者情報を管理するマスターテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| author_id | VARCHAR(100) | NO | - | 著者の一意識別子（Primary Key）。Semantic ScholarのauthorId |
+| name | TEXT | NO | - | 著者名 |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+| updated_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード更新日時 |
+
+**制約:**
+- PRIMARY KEY: `author_id`
+- UNIQUE: `(name)` （同一著者の重複防止）
+
+**インデックス:**
+- PRIMARY KEY: `author_id`
+- INDEX: `idx_authors_name` (name)
+
+### 2.4 paper_fields_of_study テーブル
+
+論文と研究分野の関連を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| paper_id | VARCHAR(100) | NO | - | 論文ID（Foreign Key → papers.paper_id） |
+| field_name | VARCHAR(100) | NO | - | 研究分野名（Computer Science、Medicine等） |
+| source | VARCHAR(20) | NO | - | 分類ソース（external、s2-fos-model） |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+
+**制約:**
+- PRIMARY KEY: `(paper_id, field_name, source)`
+- FOREIGN KEY: `paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
+- CHECK: `source IN ('external', 's2-fos-model')`
+
+**インデックス:**
+- PRIMARY KEY: 複合キー
+- INDEX: `idx_paper_fields_field_name` (field_name)
+- INDEX: `idx_paper_fields_source` (source)
+
+### 2.5 venues テーブル
+
+出版会場（会議・ジャーナル）情報を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| venue_id | VARCHAR(100) | NO | - | 会場の一意識別子（Primary Key）。Semantic ScholarのvenueId |
+| name | TEXT | NO | - | 会場名 |
+| type | VARCHAR(20) | YES | NULL | 会場種別（conference、journal） |
+| url | TEXT | YES | NULL | 会場のWebサイトURL |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+| updated_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード更新日時 |
+
+**制約:**
+- PRIMARY KEY: `venue_id`
+- CHECK: `type IN ('conference', 'journal')` OR `type IS NULL`
+
+**インデックス:**
+- PRIMARY KEY: `venue_id`
+- INDEX: `idx_venues_name` (name)
+- INDEX: `idx_venues_type` (type)
+
+### 2.6 venue_alternate_names テーブル
+
+会場の別名を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| venue_id | VARCHAR(100) | NO | - | 会場ID（Foreign Key → venues.venue_id） |
+| alternate_name | TEXT | NO | - | 別名 |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+
+**制約:**
+- PRIMARY KEY: `(venue_id, alternate_name)`
+- FOREIGN KEY: `venue_id` REFERENCES venues(venue_id) ON DELETE CASCADE
+
+**インデックス:**
+- PRIMARY KEY: 複合キー
+- INDEX: `idx_venue_alternate_names_name` (alternate_name)
+
+### 2.7 journals テーブル
+
+ジャーナル情報を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| journal_id | VARCHAR(100) | NO | - | ジャーナルの一意識別子（Primary Key） |
+| name | TEXT | NO | - | ジャーナル名 |
+| volume | TEXT | YES | NULL | 巻数 |
+| pages | TEXT | YES | NULL | ページ範囲 |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+| updated_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード更新日時 |
+
+**制約:**
+- PRIMARY KEY: `journal_id`
+
+**インデックス:**
+- PRIMARY KEY: `journal_id`
+- INDEX: `idx_journals_name` (name)
+
+### 2.8 paper_external_ids テーブル
+
+論文の外部識別子を管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| paper_id | VARCHAR(100) | NO | - | 論文ID（Foreign Key → papers.paper_id） |
+| external_source | VARCHAR(20) | NO | - | 外部ソース（DOI、ArXiv、MAG、ACL、PubMed、DBLP等） |
+| external_id | TEXT | NO | - | 外部識別子 |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+
+**制約:**
+- PRIMARY KEY: `(paper_id, external_source)`
+- FOREIGN KEY: `paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
+- CHECK: `external_source IN ('DOI', 'ArXiv', 'MAG', 'ACL', 'PubMed', 'DBLP', 'Medline', 'PubMedCentral')`
+
+**インデックス:**
+- PRIMARY KEY: 複合キー
+- INDEX: `idx_paper_external_ids_source` (external_source)
+- INDEX: `idx_paper_external_ids_external_id` (external_id)
+
+### 2.9 paper_keywords テーブル
+
+AI生成キーワードを管理するテーブル。
+
+| カラム名 | データ型 | NULL許可 | デフォルト値 | 説明 |
+|---------|---------|----------|-------------|------|
+| paper_id | VARCHAR(100) | NO | - | 論文ID（Foreign Key → papers.paper_id） |
+| keyword | TEXT | NO | - | キーワード |
+| created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | レコード作成日時 |
+
+**制約:**
+- PRIMARY KEY: `(paper_id, keyword)`
+- FOREIGN KEY: `paper_id` REFERENCES papers(paper_id) ON DELETE CASCADE
+
+**インデックス:**
+- PRIMARY KEY: 複合キー
+- INDEX: `idx_paper_keywords_keyword` (keyword)
+
+### 2.10 paper_relations テーブル
 
 論文間の引用・被引用関係を管理する関連テーブル。
 
@@ -115,7 +343,7 @@ erDiagram
 - INDEX: `idx_relations_target` (target_paper_id)
 - INDEX: `idx_relations_type` (relation_type)
 
-### 2.3 processing_queue テーブル
+### 2.11 processing_queue テーブル
 
 論文収集処理のキュー管理テーブル。
 
@@ -142,84 +370,26 @@ erDiagram
 - INDEX: `idx_queue_status_priority` (status, priority DESC)
 - INDEX: `idx_queue_paper_id` (paper_id)
 
-## 3. データ型補足説明
+## 3. 正規化設計の利点
 
-### 3.1 JSONB型のスキーマ
+### 3.1 JSONBからテーブル分割への変更理由
 
-**authors:**
-```json
-[
-  {
-    "authorId": "1741101",
-    "name": "Oren Etzioni"
-  }
-]
-```
+1. **データ整合性**: 著者情報や会場情報の重複を防ぎ、一意性を保つ
+2. **検索性能**: 著者名や研究分野での高速な検索が可能
+3. **関連性分析**: 著者間の共著関係や研究分野の分析が容易
+4. **スケーラビリティ**: 大量データでのパフォーマンス向上
+5. **メンテナンス性**: スキーマ変更時の影響範囲が明確
 
-**fields_of_study:**
-```json
-["Computer Science", "Mathematics"]
-```
+### 3.2 データ正規化の詳細
 
-**s2_fields_of_study:**
-```json
-[
-  {
-    "category": "Computer Science",
-    "source": "external"
-  },
-  {
-    "category": "Mathematics",
-    "source": "s2-fos-model"
-  }
-]
-```
+**第1正規形 (1NF)**:
+- 全てのカラムが原子値（JSONBをテーブルに分割）
 
-**publication_venue:**
-```json
-{
-  "id": "1e33b3be-b2ab-46e9-96e8-d4eb4bad6e44",
-  "name": "Annual Meeting of the Association for Computational Linguistics",
-  "type": "conference",
-  "alternate_names": ["ACL", "Meet Assoc Comput Linguistics"],
-  "url": "https://www.aclweb.org/anthology/venues/acl/"
-}
-```
+**第2正規形 (2NF)**:
+- 部分関数従属を除去（著者情報、会場情報を別テーブルへ）
 
-**journal:**
-```json
-{
-  "name": "IETE Technical Review",
-  "volume": "40",
-  "pages": "116 - 135"
-}
-```
-
-**external_ids:**
-```json
-{
-  "MAG": "3015453090",
-  "DBLP": "conf/acl/LoWNKW20",
-  "ACL": "2020.acl-main.447",
-  "DOI": "10.18653/V1/2020.ACL-MAIN.447",
-  "ArXiv": "1805.02262",
-  "PubMed": "12345678"
-}
-```
-
-**open_access_pdf:**
-```json
-{
-  "url": "https://www.aclweb.org/anthology/2020.acl-main.447.pdf",
-  "status": "HYBRID",
-  "license": "CCBY"
-}
-```
-
-**keywords:**
-```json
-["RAG", "論文グラフ", "引用ネットワーク", "Semantic Scholar"]
-```
+**第3正規形 (3NF)**:
+- 推移関数従属を除去（会場別名を別テーブルへ）
 
 ## 4. 処理フロー補足
 
@@ -238,11 +408,29 @@ where:
 
 ### 4.2 トランザクション設計
 
-- 論文メタデータ登録時は、`papers` と `paper_relations` を同一トランザクションで更新
-- `processing_queue` への登録は別トランザクションで実行（処理失敗時の再登録を考慮）
+正規化されたテーブル構成でのデータ登録手順：
+
+1. **マスターデータ登録**: authors, venues, journals テーブルへの登録
+2. **論文メタデータ登録**: papers テーブルへの登録
+3. **関連データ登録**: paper_authors, paper_fields_of_study, paper_external_ids, paper_keywords テーブルへの登録
+4. **引用関係登録**: paper_relations テーブルへの登録
+
+各ステップは同一トランザクションで実行し、データ一貫性を保つ。
 
 ## 5. パフォーマンス考慮事項
 
-- `authors` や `fields_of_study` などのJSONB型カラムは、GINインデックスの追加を検討
-- 大量の引用関係を持つ論文の処理時は、バッチ処理を推奨
-- `paper_relations` テーブルは増大しやすいため、定期的なVACUUM ANALYZEを実施
+### 5.1 インデックス戦略
+
+- **複合インデックス**: 頻繁な検索パターンに対して複合インデックスを作成
+- **パーシャルインデックス**: 大量データでは条件付きインデックスを検討
+
+### 5.2 パーティショニング
+
+- **時間6分割**: papers テーブルを出版年でパーティション化を検討
+- **関係テーブル**: paper_relations はシャード化で分散処理を検討
+
+### 5.3 メンテナンス
+
+- **統計情報更新**: 全テーブルに対して定期的なANALYZE実行
+- **デッドタプル清理**: 高更新頻度テーブルのVACUUMスケジュール設定
+- **アーカイブ**: 古い処理キューレコードのアーカイブ化
