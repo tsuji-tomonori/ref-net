@@ -30,7 +30,7 @@ flowchart TD
     
     OutputFile --> GetRelations[引用・被引用関係取得]
     
-    GetRelations --> CalcWeight[重み付け計算<br/>- 引用数<br/>- 発行年<br/>- 分野]
+    GetRelations --> CalcWeight[重み付け計算<br/>- ホップ数（距離）<br/>- 引用数<br/>- 発行年<br/>- 分野]
     
     CalcWeight --> AddQueue[処理キューに追加]
     
@@ -88,13 +88,24 @@ stateDiagram-v2
 flowchart LR
     Paper[論文] --> Factors[評価要素]
     
+    Factors --> Distance["距離（ホップ数）<br/>元論文からの距離<br/>1 / (hop + 1)"]
     Factors --> Citation["引用数<br/>log10(count + 1)"]
     Factors --> Year[発行年<br/>新しいほど高]
     Factors --> Field[分野一致<br/>起点と同じ分野]
     
-    Citation --> Score[総合スコア]
+    Distance --> Score[総合スコア<br/>距離による重み×その他要素]
+    Citation --> Score
     Year --> Score
     Field --> Score
     
     Score --> Priority[優先度<br/>スコア降順]
 ```
+
+### 距離（ホップ数）による優先度
+
+- **ホップ数0（元論文）**: 重み = 1.0
+- **ホップ数1（直接の引用・被引用）**: 重み = 0.5
+- **ホップ数2（引用の引用）**: 重み = 0.33
+- **ホップ数3以降**: 重み = 1 / (hop + 1)
+
+この方式により、元論文に近い論文ほど高い優先度で処理され、離れるほど優先度が下がります。
