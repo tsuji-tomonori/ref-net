@@ -4,8 +4,6 @@ $schema: './cache/schemas/workspace.json'
 # extends: './shared/workspace.yml'
 
 projects:
-  batch: 'package/batch'
-  infra: 'package/infra'
   tools: 'tools'
 vcs:
   manager: 'git'
