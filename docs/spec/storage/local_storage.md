@@ -44,9 +44,7 @@ authors: ["著者1", "著者2"]
 year: 2024
 paper_id: "204e3073870fae3d05bcbc2f6a8e263d10af1e8b"
 citation_count: 150
-fields_of_study: ["Machine Learning", "NLP"]
-references: ["paper_id_1", "paper_id_2"]
-citations: ["paper_id_3", "paper_id_4"]
+abstract: "論文の要約テキスト"
 tags:
   - RAG
   - NLP
