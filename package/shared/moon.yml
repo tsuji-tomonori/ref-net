@@ -1,0 +1,30 @@
+type: library
+language: python
+
+tasks:
+  lint:
+    command: ruff check .
+    inputs:
+      - "**/*.py"
+
+  format:
+    command: ruff format .
+    inputs:
+      - "**/*.py"
+
+  typecheck:
+    command: mypy .
+    inputs:
+      - "**/*.py"
+
+  test:
+    command: pytest tests/ -v
+    inputs:
+      - "**/*.py"
+      - "tests/**/*.py"
+
+  check:
+    deps:
+      - lint
+      - typecheck
+      - test
