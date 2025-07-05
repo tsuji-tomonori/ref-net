@@ -222,6 +222,106 @@ graph TD
 - [ ] 失敗時のロールバック戦略が考慮されている
 - [ ] Phase 4への移行準備が適切である
 
+## 失敗時ロールバック戦略
+
+### サービス単位でのロールバック
+
+**1. API Service 失敗時**
+```bash
+# サービス停止
+docker-compose stop api
+# 前のバージョンのコンテナに戻す
+docker-compose up -d api:previous-tag
+# ヘルスチェック確認
+curl -f http://localhost:8000/health || echo "Rollback failed"
+```
+
+**2. Crawler Service 失敗時**
+```bash
+# 実行中のタスクを停止
+celery -A crawler.celery_app control purge
+# データベース不整合の修正
+python crawler/scripts/cleanup_partial_data.py
+# 前のバージョンに戻す
+git checkout previous-crawler-version
+```
+
+**3. 統合テスト失敗時**
+```bash
+# 全サービス停止
+docker-compose down
+# データベースをバックアップから復元
+pg_restore -d refnet_db backup_before_phase3.dump
+# Phase 2時点のサービス構成に戻す
+git checkout phase2-stable
+```
+
+### データ整合性保証
+
+**トランザクション分離**:
+- 各サービスの変更は独立したトランザクションで実行
+- 複数サービスにまたがる操作はSagaパターンで実装
+- 失敗時の補償トランザクション（compensation）を事前定義
+
+**状態管理**:
+```python
+# サービス状態管理
+class ServiceState:
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    FAILED = "failed"
+    ROLLBACK = "rollback"
+
+# 状態遷移の監視
+async def monitor_service_health():
+    for service in services:
+        if service.state == ServiceState.FAILED:
+            await initiate_rollback(service)
+```
+
+## 障害伝播対策
+
+### Circuit Breaker パターン
+
+```python
+from circuit_breaker import CircuitBreaker
+
+# 外部API呼び出し保護
+@CircuitBreaker(failure_threshold=5, recovery_timeout=30)
+async def call_semantic_scholar_api(paper_id: str):
+    # API呼び出し
+    pass
+
+# サービス間通信保護
+@CircuitBreaker(failure_threshold=3, recovery_timeout=60)
+async def call_summarizer_service(paper_data: dict):
+    # サービス間通信
+    pass
+```
+
+### 障害分離戦略
+
+**1. タイムアウト設定**
+- API呼び出し: 30秒
+- サービス間通信: 10秒
+- データベースクエリ: 5秒
+
+**2. リトライポリシー**
+```python
+# 指数バックオフリトライ
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10)
+)
+async def resilient_api_call():
+    pass
+```
+
+**3. フォールバック機能**
+- 要約API失敗時: プレーンテキスト抽出にフォールバック
+- クローラー失敗時: キャッシュデータの利用
+- 生成サービス失敗時: 基本テンプレートの利用
+
 ## トラブルシューティング
 
 ### よくある問題

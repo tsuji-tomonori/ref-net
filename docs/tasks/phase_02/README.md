@@ -167,6 +167,43 @@ graph TD
 - [ ] デバッグとトラブルシューティングが容易である
 - [ ] バックアップとリカバリ手順が整備されている
 
+## バックアップ・リカバリ戦略
+
+### 日次バックアップ手順
+```bash
+# 論理バックアップ（pg_dump）
+pg_dump -h localhost -U refnet_user -d refnet_db \
+  --clean --create --if-exists \
+  --format=custom \
+  --compress=9 \
+  --file=backup_$(date +%Y%m%d_%H%M%S).dump
+
+# 物理バックアップ（pg_basebackup） - 本番環境
+pg_basebackup -h localhost -U postgres \
+  --pgdata=backup_base_$(date +%Y%m%d) \
+  --format=tar --compress=9 --checkpoint=fast
+```
+
+### リストア手順
+```bash
+# 開発環境での論理リストア
+dropdb refnet_db
+createdb refnet_db
+pg_restore -h localhost -U refnet_user -d refnet_db backup_file.dump
+
+# 本番環境での物理リストア（災害時）
+systemctl stop postgresql
+rm -rf /var/lib/postgresql/16/main/*
+tar -xzf backup_base_YYYYMMDD.tar.gz -C /var/lib/postgresql/16/main/
+systemctl start postgresql
+```
+
+### バックアップ保持ポリシー
+- **日次バックアップ**: 30日間保持
+- **週次バックアップ**: 12週間保持
+- **月次バックアップ**: 12ヶ月保持
+- **年次バックアップ**: 永続保持
+
 ### データベース設計固有の観点
 - [ ] 論文研究ドメインの特性が適切にモデリングされている
 - [ ] 引用・被引用関係のモデリングが適切である
@@ -174,6 +211,56 @@ graph TD
 - [ ] 非同期処理を考慮したキューシステムが適切である
 - [ ] 外部システムとの連携を考慮した設計になっている
 - [ ] データのバージョニングと履歴管理が適切である
+
+## データバージョニング戦略
+
+### バージョン管理対象
+- **論文メタデータ**: title, abstract, publication_date等の変更追跡
+- **著者情報**: name, affiliation等の変更追跡
+- **引用関係**: 新規発見または訂正時の履歴管理
+
+### 実装アプローチ
+
+**1. イベントソーシング方式**
+```sql
+-- 変更履歴テーブル
+CREATE TABLE paper_history (
+  id SERIAL PRIMARY KEY,
+  paper_id UUID NOT NULL,
+  change_type VARCHAR(20) NOT NULL, -- 'create', 'update', 'delete'
+  changed_fields JSONB,            -- 変更されたフィールド
+  old_values JSONB,                -- 変更前の値
+  new_values JSONB,                -- 変更後の値
+  changed_at TIMESTAMP DEFAULT NOW(),
+  changed_by VARCHAR(100),         -- 変更者（システム/ユーザー）
+  source_api VARCHAR(50),          -- データソース（semantic_scholar, arxiv等）
+  FOREIGN KEY (paper_id) REFERENCES papers(id)
+);
+```
+
+**2. タイムスタンプ方式**
+```sql
+-- 全テーブル共通のタイムスタンプカラム
+ALTER TABLE papers ADD COLUMN
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  version INTEGER DEFAULT 1;
+
+-- 更新トリガー
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.version = OLD.version + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### データ一貫性保証
+- **論理削除**: 物理削除の代わりに`deleted_at`カラムで管理
+- **参照整合性**: 履歴データでも外部キー制約を維持
+- **データクリーンアップ**: 古い履歴データの自動アーカイブ（1年後）
 
 ## データモデル概要
 

@@ -208,6 +208,243 @@ graph TD
 - [ ] キャッシュ戦略が効果的である
 - [ ] 負荷テストが実施されている
 
+## パフォーマンス監視・ボトルネック対策
+
+### リアルタイムパフォーマンス監視
+
+**1. システムリソース監視**
+```yaml
+# Prometheus監視設定
+- job_name: 'node-exporter'
+  static_configs:
+    - targets: ['localhost:9100']
+  scrape_interval: 5s
+  metrics_path: /metrics
+
+# 重要メトリクス
+system_metrics:
+  - cpu_usage_percent        # CPU使用率
+  - memory_usage_percent     # メモリ使用率
+  - disk_io_utilization     # ディスクI/O
+  - network_throughput      # ネットワーク転送量
+```
+
+**2. アプリケーション性能監視**
+```python
+# FastAPIメトリクス収集
+from prometheus_client import Counter, Histogram, Gauge
+
+REQUEST_COUNT = Counter('requests_total', 'Total requests', ['method', 'endpoint', 'status'])
+REQUEST_LATENCY = Histogram('request_duration_seconds', 'Request latency')
+ACTIVE_CONNECTIONS = Gauge('active_connections', 'Active database connections')
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    REQUEST_LATENCY.observe(duration)
+    REQUEST_COUNT.labels(method=request.method,
+                        endpoint=request.url.path,
+                        status=response.status_code).inc()
+    return response
+```
+
+### ボトルネック特定手順
+
+**1. 自動ボトルネック検出**
+```python
+# パフォーマンス異常検知
+class PerformanceMonitor:
+    def __init__(self):
+        self.thresholds = {
+            'api_response_time': 0.5,  # 500ms
+            'cpu_usage': 80,           # 80%
+            'memory_usage': 85,        # 85%
+            'db_connection_pool': 0.8  # 80%
+        }
+
+    async def check_bottlenecks(self):
+        issues = []
+
+        # API応答時間チェック
+        avg_response_time = await self.get_avg_response_time()
+        if avg_response_time > self.thresholds['api_response_time']:
+            issues.append(f"API response time: {avg_response_time:.2f}s")
+
+        # リソース使用率チェック
+        cpu_usage = await self.get_cpu_usage()
+        if cpu_usage > self.thresholds['cpu_usage']:
+            issues.append(f"High CPU usage: {cpu_usage}%")
+
+        return issues
+```
+
+**2. 段階的ボトルネック解析**
+```bash
+# Step 1: 全体概要の確認
+docker stats --no-stream
+htop
+
+# Step 2: データベース性能分析
+psql -d refnet_db -c "
+SELECT query, mean_time, calls, total_time
+FROM pg_stat_statements
+ORDER BY total_time DESC LIMIT 10;"
+
+# Step 3: アプリケーション プロファイリング
+python -m cProfile -o profile.stats api_service.py
+python -c "
+import pstats
+p = pstats.Stats('profile.stats')
+p.sort_stats('tottime').print_stats(20)
+"
+
+# Step 4: 詳細メトリクス分析
+curl http://localhost:8000/metrics | grep -E "(response_time|error_rate|throughput)"
+```
+
+### 性能最適化戦略
+
+**1. データベース最適化**
+```sql
+-- インデックス効果分析
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM papers p
+JOIN paper_relations pr ON p.id = pr.target_paper_id
+WHERE p.title ILIKE '%machine learning%';
+
+-- 接続プール最適化
+-- sqlalchemy pool settings
+pool_size=20
+max_overflow=30
+pool_timeout=30
+pool_recycle=3600
+```
+
+**2. キャッシュ戦略最適化**
+```python
+# 階層化キャッシュ
+@cache(expire=3600)  # 1時間キャッシュ
+async def get_paper_summary(paper_id: str):
+    # データベースアクセス
+    pass
+
+# Redis分散キャッシュ
+import redis.asyncio as redis
+
+redis_client = redis.Redis(host='redis', port=6379, db=0)
+
+async def cached_api_call(api_endpoint: str, params: dict):
+    cache_key = f"api:{api_endpoint}:{hash(str(params))}"
+    cached = await redis_client.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
+
+    result = await external_api_call(api_endpoint, params)
+    await redis_client.setex(cache_key, 1800, json.dumps(result))  # 30分
+    return result
+```
+
+## 負荷テスト実施計画
+
+### 負荷テストシナリオ
+
+**1. 段階的負荷テスト**
+```yaml
+# locust負荷テスト設定
+test_scenarios:
+  - name: "normal_load"
+    users: 10
+    spawn_rate: 1
+    duration: "10m"
+
+  - name: "peak_load"
+    users: 50
+    spawn_rate: 5
+    duration: "20m"
+
+  - name: "stress_test"
+    users: 100
+    spawn_rate: 10
+    duration: "30m"
+```
+
+**2. 負荷テストスクリプト**
+```python
+# locustfile.py
+from locust import HttpUser, task, between
+
+class RefNetUser(HttpUser):
+    wait_time = between(1, 3)
+
+    def on_start(self):
+        # 認証
+        response = self.client.post("/auth/login", json={
+            "username": "test_user",
+            "password": "test_password"
+        })
+        self.token = response.json()["access_token"]
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+
+    @task(3)
+    def search_papers(self):
+        self.client.get("/api/papers/search",
+                       params={"q": "machine learning", "limit": 10},
+                       headers=self.headers)
+
+    @task(2)
+    def get_paper_details(self):
+        self.client.get("/api/papers/123", headers=self.headers)
+
+    @task(1)
+    def create_summary_task(self):
+        self.client.post("/api/tasks/summarize",
+                        json={"paper_id": "123"},
+                        headers=self.headers)
+```
+
+**3. 負荷テスト実行手順**
+```bash
+# 基本負荷テスト
+locust -f locustfile.py --host=http://localhost:8000 \
+       --users 10 --spawn-rate 1 --run-time 600s
+
+# 分散負荷テスト
+# Master node
+locust -f locustfile.py --master --host=http://localhost:8000
+
+# Worker nodes
+locust -f locustfile.py --worker --master-host=192.168.1.100
+
+# CI/CD自動負荷テスト
+pytest tests/load_tests/ --junitxml=load_test_results.xml
+```
+
+**4. 性能基準・合格条件**
+```yaml
+performance_criteria:
+  api_response_time:
+    p95: "< 500ms"
+    p99: "< 1000ms"
+
+  throughput:
+    min_rps: 100  # requests per second
+
+  error_rate:
+    max_error_rate: "< 1%"
+
+  resource_usage:
+    cpu: "< 80%"
+    memory: "< 85%"
+
+  database:
+    connection_pool_usage: "< 80%"
+    query_time_p95: "< 100ms"
+```
+
 ### 自動化
 - [ ] 定期的なタスクが適切に自動化されている
 - [ ] デプロイプロセスが自動化可能である
