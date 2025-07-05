@@ -1,0 +1,12 @@
+language: python
+type: application
+tasks:
+  install:
+    command: pip install pre-commit && pre-commit install
+    options:
+      cache: false
+
+  check:
+    command: pre-commit run --all-files
+    options:
+      cache: false
