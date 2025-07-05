@@ -215,3 +215,12 @@ OUTPUT_DIR=./output
 - 詳細:
   - [ローカルストレージ](../spec/storage/local_storage.md)
   - [PostgreSQL容量](../spec/storage/postgresql_capacity.md)
+
+### 8.6 ジョブキュー設計書
+
+- Celeryタスクキュー構成
+- Redis接続設定・永続化設定
+- ワーカー起動パラメータ・並行数設定
+- タスク定義・優先度・リトライ設定
+- 監視・ログ設定
+- 詳細: [Celeryジョブキュー](../spec/queue/celery_queue.md)
