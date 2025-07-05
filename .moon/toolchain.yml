@@ -1,0 +1,11 @@
+# Toolchain configuration
+$schema: "https://moonrepo.dev/schemas/toolchain.json"
+
+# Python設定
+python:
+  version: "3.12"
+
+  # 仮想環境の設定（uvを使用）
+  packageManager: "uv"
+  uv:
+    syncArgs: ["--all-extras"]
