@@ -939,6 +939,97 @@ ENV PYTHONPATH=/app/src
 CMD ["celery", "-A", "refnet_crawler.tasks.celery_app", "worker", "--loglevel=info", "--queue=crawl"]
 ```
 
+## 外部API依存関係と制限事項
+
+### Semantic Scholar API仕様
+
+#### レート制限
+- **認証なし**: 100 requests/5min (1,200 requests/hour)
+- **API キー付き**: 1,000 requests/5min (12,000 requests/hour)
+- **推奨間隔**: 500ms between requests (認証なし), 100ms (API キー付き)
+
+#### エンドポイント別制限
+- Paper details: `/paper/{id}` - 標準レート適用
+- Citations: `/paper/{id}/citations` - 標準レート適用、最大10,000件/論文
+- References: `/paper/{id}/references` - 標準レート適用、最大1,000件/論文
+- Search: `/paper/search` - 標準レート適用、最大10,000件/クエリ
+
+#### データ制限
+- **フィールド数**: 最大20フィールド/リクエスト
+- **バッチサイズ**: 最大500論文ID/バッチリクエスト
+- **検索結果**: 最大10,000件/クエリ
+- **タイムアウト**: 30秒/リクエスト
+
+### レート制限対応戦略
+
+#### 1. 階層化バックオフ戦略
+```python
+# tenacity設定の詳細化
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=4, max=300),  # 4s, 8s, 16s, 32s, 64s
+    retry=retry_if_exception_type((httpx.HTTPStatusError,)),
+    before_sleep=before_sleep_log(logger, log_level=logging.WARNING)
+)
+```
+
+#### 2. 適応的レート制御
+- **基本間隔**: API キー有り 100ms、無し 500ms
+- **429エラー時**: 指数バックオフ（最大5分）
+- **503エラー時**: 線形バックオフ（30秒間隔）
+- **タイムアウト時**: 接続間隔を2倍に増加
+
+#### 3. 回路ブレーカー実装
+```python
+class CircuitBreaker:
+    def __init__(self, failure_threshold=5, recovery_timeout=300):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = "closed"  # closed, open, half-open
+```
+
+### フォールバック戦略
+
+#### データ取得失敗時
+1. **キャッシュからの取得**: Redis/localキャッシュを確認
+2. **代替エンドポイント**: 論文ID検索→DOI検索→タイトル検索
+3. **部分データ許容**: 必須フィールドのみ取得で処理続行
+4. **遅延再試行**: 24時間後の再処理キューに追加
+
+#### API停止時
+1. **処理の一時停止**: 新規クローリング停止、既存データ処理継続
+2. **アラート送信**: 監視システムへの通知
+3. **手動介入準備**: バックアップデータソースの準備
+4. **復旧時の自動再開**: ヘルスチェック通過後の自動復旧
+
+### 監視とアラート
+
+#### メトリクス収集
+- **API成功率**: 5分間隔、95%未満でアラート
+- **レスポンス時間**: 95パーセンタイル 5秒超過でアラート
+- **レート制限到達**: 1時間あたりの429エラー数
+- **クォータ使用量**: 日次使用量の80%到達でアラート
+
+#### アラート設定
+- **Critical**: API完全停止（5分間レスポンス無し）
+- **Warning**: 成功率95%未満、レスポンス時間5秒超過
+- **Info**: レート制限到達、クォータ80%使用
+
+### パフォーマンス最適化
+
+#### リクエスト最適化
+- **フィールド選択**: 必要最小限のフィールドのみ要求
+- **バッチ処理**: 複数論文IDの一括取得
+- **キャッシング**: 6時間のメモリキャッシュ + 24時間のRedisキャッシュ
+- **圧縮**: gzip圧縮リクエストの使用
+
+#### 処理優先度
+- **高優先度**: 直接指定された論文、引用数100以上
+- **中優先度**: 引用数10-99、発行年2020以降
+- **低優先度**: 引用数10未満、発行年2019以前
+
 ## スコープ
 
 - Semantic Scholar APIクライアント実装
@@ -946,12 +1037,13 @@ CMD ["celery", "-A", "refnet_crawler.tasks.celery_app", "worker", "--loglevel=in
 - 引用関係の再帰的収集
 - Celeryタスクの実装
 - 基本的なテストケース
+- レート制限とエラーハンドリング戦略
 
 **スコープ外:**
-- 詳細なレート制限対応
-- 高度な優先度制御
-- 複数API統合
-- 大規模データ処理最適化
+- 複数API統合（PubMed、arXiv等）
+- リアルタイム論文監視
+- 機械学習による優先度自動調整
+- 大規模分散クローリング（1000万論文以上）
 
 ## 参照するドキュメント
 
