@@ -18,14 +18,14 @@ sequenceDiagram
     User->>PP: 論文ID投入
     PP->>SS: 論文情報取得要求
     SS-->>PP: メタデータ返却
-    
+
     Note over PP: メタデータ解析
     PP->>DB: 論文メタデータ保存
-    
+
     PP->>Gen: Markdown生成要求
     Gen->>DB: 論文情報取得
     Gen->>OV: Obsidian形式で保存
-    
+
     loop 再帰的処理
         PP->>SS: 引用・被引用論文取得
         SS-->>PP: 関連論文リスト
@@ -49,14 +49,14 @@ sequenceDiagram
     User->>PS: PDF要約リクエスト
     PS->>DB: 論文情報取得
     DB-->>PS: 論文メタデータ
-    
+
     Note over PS: PDF URL確認
     PS->>PS: PDFダウンロード
     PS->>PS: テキスト抽出
-    
+
     PS->>LLM: 要約生成要求
     LLM-->>PS: 要約結果返却
-    
+
     PS->>DB: 要約・キーワード保存
     PS->>OV: Markdownファイル更新
 ```
@@ -103,9 +103,9 @@ sequenceDiagram
     PP->>DB: 新規論文発見
     PP->>PP: 重み付けスコア計算
     Note over PP: citation_count * 係数
-    
+
     PP->>Queue: キューに追加（優先度付き）
-    
+
     loop キュー処理
         Queue->>PP: 最高優先度の論文取得
         PP->>PP: 論文処理実行

@@ -18,37 +18,37 @@ erDiagram
         boolean is_open_access
         text summary
     }
-    
+
     authors {
         varchar author_id
         text name
     }
-    
+
     venues {
         varchar venue_id
         text name
         text type
     }
-    
+
     journals {
         varchar journal_id
         text name
         text volume
     }
-    
+
     paper_authors {
         varchar paper_id
         varchar author_id
         integer author_order
     }
-    
+
     paper_relations {
         varchar source_paper_id
         varchar target_paper_id
         varchar relation_type
         integer hop_count
     }
-    
+
     papers ||--o{ paper_authors : contains
     authors ||--o{ paper_authors : writes
     papers ||--o{ venues : "published in"
@@ -64,36 +64,36 @@ erDiagram
     papers {
         varchar paper_id
     }
-    
+
     paper_fields_of_study {
         varchar paper_id
         varchar field_name
         varchar source
     }
-    
+
     paper_external_ids {
         varchar paper_id
         text external_source
         text external_id
     }
-    
+
     paper_keywords {
         varchar paper_id
         text keyword
     }
-    
+
     venue_alternate_names {
         varchar venue_id
         text alternate_name
     }
-    
+
     processing_queue {
         serial id
         varchar paper_id
         integer priority
         varchar status
     }
-    
+
     papers ||--o{ paper_fields_of_study : "has fields"
     papers ||--o{ paper_external_ids : "has external ids"
     papers ||--o{ paper_keywords : "has keywords"

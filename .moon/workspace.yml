@@ -6,6 +6,7 @@ $schema: './cache/schemas/workspace.json'
 projects:
   batch: 'package/batch'
   infra: 'package/infra'
+  tools: 'tools'
 vcs:
   manager: 'git'
   defaultBranch: 'main'
