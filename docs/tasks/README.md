@@ -1,228 +1,132 @@
-# RefNet 並列開発タスク一覧
+# RefNet 開発フェーズ管理
 
 ## 概要
 
-このディレクトリには、RefNet論文関係性可視化システムを効率的に並列開発するためのタスク定義が含まれています。
+RefNet論文関係性可視化システムの開発を効率的に進めるため、機能と依存関係に基づいて4つのフェーズに分割して実装します。各フェーズは明確な目的と完了条件を持ち、次のフェーズの前提条件となります。
 
-## タスク実行順序
+## フェーズ構成
 
-### Phase 0: 前提タスク（順次実行）
+### Phase 1: プロジェクト基盤構築
+**目的**: 開発環境とプロジェクト構造の確立
+**期間**: 4-5時間
+**依存関係**: なし（プロジェクト開始点）
 
-これらのタスクは並列開発を開始する前に完了する必要があります。
+- プロジェクト全体構造の作成
+- Monorepo環境の構築
+- 共通ライブラリの基盤設定
+- 環境設定管理システム
 
-| タスク | ファイル | 説明 | 実行時間 |
-|--------|----------|------|----------|
-| プロジェクト構造作成 | [00_project_structure.md](00_project_structure.md) | 全体のディレクトリ構造とパッケージ初期化 | 30分 |
-| Monorepo設定 | [01_monorepo_setup.md](01_monorepo_setup.md) | moonrepoによるモノレポ環境構築 | 45分 |
-| 共通基盤設定 | [02_shared_foundation.md](02_shared_foundation.md) | 共通ライブラリの基本設定 | 60分 |
+### Phase 2: データ基盤構築
+**目的**: データモデルと永続化層の確立
+**期間**: 4-5時間
+**依存関係**: Phase 1完了
 
-**合計**: 約2時間15分
+- SQLAlchemyモデル定義
+- データベースマイグレーション設定
+- 共通データアクセス層
 
-### Phase 1: 基盤開発（shared worktreeで実施）
+### Phase 3: コアサービス開発
+**目的**: ビジネスロジックとAPIの実装
+**期間**: 16-20時間（並列開発可能）
+**依存関係**: Phase 2完了
 
-| タスク | ファイル | 説明 | 実行時間 |
-|--------|----------|------|----------|
-| データベースモデル定義 | [10_database_models.md](10_database_models.md) | SQLAlchemyモデル・Pydanticスキーマ定義 | 3時間 |
+- APIゲートウェイサービス
+- クローラーサービス
+- 要約サービス
+- Markdownジェネレーター
 
-### Phase 2: 並列コンポーネント開発
+### Phase 4: インフラ・運用
+**目的**: 本番運用に必要なインフラと運用機能
+**期間**: 8-10時間（一部並列開発可能）
+**依存関係**: Phase 3の基本機能完了
 
-これらのタスクは独立したworktreeで並列実行可能です。
+- Docker統合環境
+- 監視・アラート機能
+- セキュリティ・認証機能
+- バッチ処理・スケジューリング
 
-| タスク | ファイル | 説明 | 実行時間 | 依存関係 |
-|--------|----------|------|----------|----------|
-| APIサービス | [20_api_service.md](20_api_service.md) | FastAPI APIゲートウェイ実装 | 4時間 | Phase 1 |
-| クローラーサービス | [21_crawler_service.md](21_crawler_service.md) | Semantic Scholar API統合 | 5時間 | Phase 1 |
-| 要約サービス | [22_summarizer_service.md](22_summarizer_service.md) | PDF処理・LLM要約実装 | 4時間 | Phase 1 |
-| ジェネレーター | [23_generator_service.md](23_generator_service.md) | Obsidian Markdown生成 | 3時間 | Phase 1 |
-| Docker環境 | [30_docker_setup.md](30_docker_setup.md) | Docker Compose統合環境 | 2時間 | 独立 |
+## 並列開発戦略
 
-## git worktree セットアップ
+### Phase 1-2: 順次実行必須
+- 全体の基盤となるため、順序通りに実行
+- 一人の開発者が集中して実施
 
-### 1. worktree用ディレクトリの作成
+### Phase 3: 完全並列開発可能
+- 各サービスは独立したworktreeで開発
+- 4人の開発者が同時並行で実装可能
+- 依存関係は共通基盤（Phase 2）のみ
 
+### Phase 4: 部分並列開発可能
+- Docker設定は独立して開始可能
+- 監視・セキュリティは Phase 3 の基本機能完了後
+- 2-3人の開発者で並列実装可能
+
+## 完了基準
+
+### 各フェーズの完了条件
+- すべてのタスクの完了条件を満たす
+- `moon :check` が全パッケージで正常終了
+- フェーズ固有の統合テストが通る
+- 次フェーズの前提条件が整備されている
+
+### プロジェクト全体の完了条件
+- 全フェーズの完了
+- 論文取得→要約→Markdown生成の完全フローが動作
+- Obsidianで論文ネットワークが可視化される
+- 本番環境での安定稼働が可能
+
+## 見積もり時間
+
+| フェーズ | 順次実行時間 | 並列実行時間 | 最大並列人数 |
+|----------|-------------|-------------|-------------|
+| Phase 1 | 4-5時間 | 4-5時間 | 1人 |
+| Phase 2 | 4-5時間 | 4-5時間 | 1人 |
+| Phase 3 | 16-20時間 | 4-5時間 | 4人 |
+| Phase 4 | 8-10時間 | 3-4時間 | 3人 |
+| **合計** | **32-40時間** | **15-19時間** | **最大4人** |
+
+並列開発により、約**60%の時間短縮**が期待できます。
+
+## Git Worktree戦略
+
+### Phase 1-2: メインブランチ
 ```bash
-mkdir -p ~/project/ref-net-worktrees
 cd ~/project/ref-net
+# Phase 1, 2はメインブランチで順次実行
 ```
 
-### 2. 各コンポーネント用worktreeの作成
-
+### Phase 3: 各サービス用Worktree
 ```bash
-# 共通基盤用
-git worktree add ../ref-net-worktrees/shared claude/shared-$(date +'%Y%m%d%H%M%S')
-
-# 各サービス用
+# 各サービス用のworktree作成
 git worktree add ../ref-net-worktrees/api claude/api-$(date +'%Y%m%d%H%M%S')
 git worktree add ../ref-net-worktrees/crawler claude/crawler-$(date +'%Y%m%d%H%M%S')
 git worktree add ../ref-net-worktrees/summarizer claude/summarizer-$(date +'%Y%m%d%H%M%S')
 git worktree add ../ref-net-worktrees/generator claude/generator-$(date +'%Y%m%d%H%M%S')
-
-# Docker環境用
-git worktree add ../ref-net-worktrees/docker claude/docker-$(date +'%Y%m%d%H%M%S')
 ```
 
-### 3. 作業ディレクトリの確認
-
+### Phase 4: インフラ用Worktree
 ```bash
-git worktree list
+git worktree add ../ref-net-worktrees/infra claude/infra-$(date +'%Y%m%d%H%M%S')
 ```
 
-## 推奨開発フロー
+## 品質管理
 
-### 開発者1: 基盤・API担当
+### 各フェーズで実施
+- コーディング規約チェック（ruff）
+- 型チェック（mypy）
+- 単体テスト実行（pytest）
+- テストカバレッジ80%以上
 
-```bash
-# Phase 0実行（メインブランチ）
-cd ~/project/ref-net
-# 00_project_structure.md の実行
-# 01_monorepo_setup.md の実行
-# 02_shared_foundation.md の実行
-git add . && git commit -m "feat: プロジェクト基盤セットアップ"
-
-# Phase 1実行（sharedブランチ）
-cd ~/project/ref-net-worktrees/shared
-# 10_database_models.md の実行
-git add . && git commit -m "feat: データベースモデル定義"
-
-# Phase 2実行（APIブランチ）
-cd ~/project/ref-net-worktrees/api
-# 20_api_service.md の実行
-git add . && git commit -m "feat: APIサービス実装"
-```
-
-### 開発者2: クローラー担当
-
-```bash
-# Phase 1完了を待つ
-cd ~/project/ref-net-worktrees/crawler
-# 21_crawler_service.md の実行
-git add . && git commit -m "feat: クローラーサービス実装"
-```
-
-### 開発者3: 要約・生成担当
-
-```bash
-# Phase 1完了を待つ
-cd ~/project/ref-net-worktrees/summarizer
-# 22_summarizer_service.md の実行
-git add . && git commit -m "feat: 要約サービス実装"
-
-cd ~/project/ref-net-worktrees/generator
-# 23_generator_service.md の実行
-git add . && git commit -m "feat: ジェネレーターサービス実装"
-```
-
-### 開発者4: インフラ担当
-
-```bash
-# Phase 0完了後すぐに開始可能
-cd ~/project/ref-net-worktrees/docker
-# 30_docker_setup.md の実行
-git add . && git commit -m "feat: Docker統合環境構築"
-```
-
-## マージ戦略
-
-### 1. sharedブランチの優先マージ
-
-```bash
-# sharedブランチを最初にマージ
-cd ~/project/ref-net
-git checkout main
-git merge claude/shared-<timestamp>
-```
-
-### 2. 各サービスブランチのマージ
-
-```bash
-# 依存関係を考慮してマージ
-git merge claude/api-<timestamp>
-git merge claude/crawler-<timestamp>
-git merge claude/summarizer-<timestamp>
-git merge claude/generator-<timestamp>
-git merge claude/docker-<timestamp>
-```
-
-### 3. 統合テスト
-
-```bash
-# 全体の動作確認
-moon run :check
-make dev-up
-make test
-```
-
-## 完了チェックリスト
-
-### Phase 0: 前提タスク
-- [ ] プロジェクト構造が作成されている
-- [ ] moonrepoが設定されている
-- [ ] 共通基盤が設定されている
-- [ ] `moon :check` が正常終了する
-
-### Phase 1: 基盤開発
-- [ ] データベースモデルが実装されている
-- [ ] 単体テストが80%以上のカバレッジを達成している
-
-### Phase 2: サービス開発
-- [ ] 各サービスが実装されている
-- [ ] 各サービスの単体テストが通る
-- [ ] Docker環境が構築されている
-- [ ] 統合テストが通る
-
-### 最終確認
-- [ ] 全サービスがDocker Composeで起動する
-- [ ] APIエンドポイントが正常に動作する
-- [ ] 論文取得→要約→Markdown生成のフロー動作確認
-- [ ] Obsidianで論文ネットワークが可視化される
-
-## 見積もり時間
-
-| フェーズ | 作業内容 | 1人での作業時間 | 4人並列での作業時間 |
-|----------|----------|----------------|-------------------|
-| Phase 0 | 前提タスク | 2.25時間 | 2.25時間 |
-| Phase 1 | 基盤開発 | 3時間 | 3時間 |
-| Phase 2 | 並列開発 | 18時間 | 5時間（最大） |
-| 統合・テスト | 統合作業 | 2時間 | 2時間 |
-| **合計** | | **25.25時間** | **12.25時間** |
-
-並列開発により、約**50%の時間短縮**が期待できます。
-
-## 注意事項
-
-1. **依存関係の順守**: Phase 1完了後にPhase 2を開始
-2. **コミュニケーション**: 各worktreeでの作業状況を共有
-3. **テスト実行**: 各段階で`moon :check`の実行を確認
-4. **競合回避**: 同一ファイルの編集は避ける
-5. **定期同期**: メインブランチからの定期的なrebase
-
-## トラブルシューティング
-
-### よくある問題
-
-1. **パッケージ依存関係エラー**
-   - 解決策: `uv sync`を実行してパッケージを同期
-
-2. **テスト失敗**
-   - 解決策: 依存関係を確認し、sharedパッケージが最新か確認
-
-3. **Docker起動失敗**
-   - 解決策: `.env`ファイルの設定を確認
-
-4. **worktreeでのコンフリクト**
-   - 解決策: メインブランチからrebaseを実行
-
-### ヘルプリソース
-
-- 各タスクファイル内の「参照するドキュメント」セクション
-- プロジェクトの`CLAUDE.md`
-- 開発規約: `docs/development/`配下
+### フェーズ間で実施
+- 統合テスト
+- パフォーマンステスト（Phase 3以降）
+- セキュリティチェック（Phase 4）
 
 ## 次のステップ
 
-全タスク完了後：
-1. 統合テストの実行
-2. パフォーマンステスト
-3. セキュリティ監査
-4. ドキュメント更新
-5. 本番デプロイメント準備
+1. **Phase 1**: `phase_01/README.md` を参照してプロジェクト基盤構築を開始
+2. **並列開発準備**: Phase 2完了後、worktree環境を構築
+3. **チーム開発**: Phase 3でチームメンバーに各サービスを割り当て
+4. **運用準備**: Phase 4で本番運用機能を実装
+
+詳細な実装手順は各フェーズディレクトリ内のREADME.mdとタスクファイルを参照してください。
