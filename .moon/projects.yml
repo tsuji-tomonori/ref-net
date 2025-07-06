@@ -1,0 +1,47 @@
+# プロジェクト自動検出の設定
+# プロジェクト間の依存関係を明示的に定義し、ビルド順序を制御する
+
+# 共通ライブラリ - 他の全てのプロジェクトが依存
+shared:
+  id: "shared"
+  source: "package/shared"
+  tags: ["library", "core"]
+  language: "python"
+  type: "library"
+  # 共通ライブラリは他のプロジェクトに依存しない
+
+# APIゲートウェイサービス - sharedに依存
+api:
+  id: "api"
+  source: "package/api"
+  tags: ["service", "api", "gateway"]
+  language: "python"
+  type: "application"
+  dependsOn: ["shared"]
+
+# クローラーサービス - sharedに依存
+crawler:
+  id: "crawler"
+  source: "package/crawler"
+  tags: ["service", "worker", "crawler"]
+  language: "python"
+  type: "application"
+  dependsOn: ["shared"]
+
+# 要約サービス - sharedに依存
+summarizer:
+  id: "summarizer"
+  source: "package/summarizer"
+  tags: ["service", "worker", "summarizer"]
+  language: "python"
+  type: "application"
+  dependsOn: ["shared"]
+
+# 生成サービス - sharedに依存
+generator:
+  id: "generator"
+  source: "package/generator"
+  tags: ["service", "worker", "generator"]
+  language: "python"
+  type: "application"
+  dependsOn: ["shared"]

@@ -89,7 +89,12 @@ class Settings(BaseSettings):
     }
 
     def __init__(self, **kwargs: Any) -> None:
-        """初期化."""
+        """初期化.
+
+        Args:
+            **kwargs: Pydantic BaseSettingsに渡される設定値
+                     環境変数やファイルからの設定値を動的に受け取るため Any 型を使用
+        """
         super().__init__(**kwargs)
 
         # Celery URLのデフォルト設定
