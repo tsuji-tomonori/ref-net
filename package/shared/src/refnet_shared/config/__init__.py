@@ -18,7 +18,9 @@ class DatabaseConfig(BaseModel):
     @property
     def url(self) -> str:
         """SQLAlchemy接続URL."""
-        return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
+        return (
+            f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
+        )
 
 
 class RedisConfig(BaseModel):
