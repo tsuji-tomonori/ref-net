@@ -1,7 +1,6 @@
 """設定テスト."""
 
-import pytest
-from refnet_shared.config import Settings, DatabaseConfig, RedisConfig
+from refnet_shared.config import DatabaseConfig, RedisConfig, Settings
 
 
 def test_database_config():

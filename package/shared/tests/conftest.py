@@ -1,6 +1,7 @@
 """pytest設定."""
 
 import pytest
+
 from refnet_shared.config import Settings
 
 

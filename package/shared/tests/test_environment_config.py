@@ -1,17 +1,19 @@
 """環境設定テスト."""
 
 import os
-import pytest
 from unittest.mock import patch
-from refnet_shared.config.environment import Environment, EnvironmentSettings, ConfigValidator
+
+import pytest
+
+from refnet_shared.config.environment import ConfigValidator, Environment, EnvironmentSettings
 from refnet_shared.exceptions import ConfigurationError
 
 
 def test_environment_enum():
     """環境Enum テスト."""
-    assert Environment.DEVELOPMENT == "development"
-    assert Environment.STAGING == "staging"
-    assert Environment.PRODUCTION == "production"
+    assert Environment.DEVELOPMENT.value == "development"
+    assert Environment.STAGING.value == "staging"
+    assert Environment.PRODUCTION.value == "production"
 
 
 def test_environment_settings_defaults():
@@ -22,70 +24,78 @@ def test_environment_settings_defaults():
     assert settings.is_production() is False
 
 
-@patch.dict(os.environ, {"NODE_ENV": "production"})
 def test_environment_settings_production():
     """本番環境設定テスト."""
-    settings = EnvironmentSettings(environment="production")
-    assert settings.environment == Environment.PRODUCTION
-    assert settings.is_production() is True
-    assert settings.is_development() is False
+    with patch.dict(os.environ, {"ENVIRONMENT": "production"}):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.PRODUCTION
+        assert settings.is_production() is True
+        assert settings.is_development() is False
 
 
 def test_config_validator_development():
     """開発環境設定検証テスト."""
-    settings = EnvironmentSettings(
-        environment=Environment.DEVELOPMENT,
-        database__host="localhost",
-        database__username="test",
-        database__password="test"
-    )
+    with patch.dict(os.environ, {
+        "NODE_ENV": "development",
+        "DATABASE__HOST": "localhost",
+        "DATABASE__USERNAME": "test",
+        "DATABASE__PASSWORD": "test"
+    }):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.DEVELOPMENT
 
-    validator = ConfigValidator(settings)
-    validator.validate_all()  # エラーが発生しないことを確認
+        validator = ConfigValidator(settings)
+        validator.validate_all()  # エラーが発生しないことを確認
 
 
 def test_config_validator_production_weak_password():
     """本番環境弱いパスワード検証テスト."""
-    settings = EnvironmentSettings(
-        environment=Environment.PRODUCTION,
-        database__host="localhost",
-        database__username="prod",
-        database__password="test"  # 弱いパスワード
-    )
+    with patch.dict(os.environ, {
+        "ENVIRONMENT": "production",
+        "DATABASE__HOST": "localhost",
+        "DATABASE__USERNAME": "prod",
+        "DATABASE__PASSWORD": "test"  # 弱いパスワード
+    }):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.PRODUCTION
 
-    validator = ConfigValidator(settings)
-    with pytest.raises(ConfigurationError):
-        validator.validate_all()
+        validator = ConfigValidator(settings)
+        with pytest.raises(ConfigurationError):
+            validator.validate_all()
 
 
 def test_config_validator_production_weak_jwt():
     """本番環境弱いJWT検証テスト."""
-    settings = EnvironmentSettings(
-        environment=Environment.PRODUCTION,
-        database__host="localhost",
-        database__username="prod",
-        database__password="strong_password",
-        security__jwt_secret="development-secret"  # 弱いJWT
-    )
+    with patch.dict(os.environ, {
+        "ENVIRONMENT": "production",
+        "DATABASE__HOST": "localhost",
+        "DATABASE__USERNAME": "prod",
+        "DATABASE__PASSWORD": "strong_password",
+        "SECURITY__JWT_SECRET": "development-secret"  # 弱いJWT
+    }):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.PRODUCTION
 
-    validator = ConfigValidator(settings)
-    with pytest.raises(ConfigurationError):
-        validator.validate_all()
+        validator = ConfigValidator(settings)
+        with pytest.raises(ConfigurationError):
+            validator.validate_all()
 
 
 def test_config_validator_production_no_api_keys():
     """本番環境APIキーなし検証テスト."""
-    settings = EnvironmentSettings(
-        environment=Environment.PRODUCTION,
-        database__host="localhost",
-        database__username="prod",
-        database__password="strong_password",
-        security__jwt_secret="very_secure_jwt_secret_key_for_production"
-    )
+    with patch.dict(os.environ, {
+        "ENVIRONMENT": "production",
+        "DATABASE__HOST": "localhost",
+        "DATABASE__USERNAME": "prod",
+        "DATABASE__PASSWORD": "strong_password",
+        "SECURITY__JWT_SECRET": "very_secure_jwt_secret_key_for_production"
+    }):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.PRODUCTION
 
-    validator = ConfigValidator(settings)
-    with pytest.raises(ConfigurationError):
-        validator.validate_all()
+        validator = ConfigValidator(settings)
+        with pytest.raises(ConfigurationError):
+            validator.validate_all()
 
 
 def test_environment_settings_boolean_methods():
@@ -148,13 +158,16 @@ def test_config_validator_warnings():
 def test_environment_validation():
     """環境種別バリデーションテスト."""
     # 有効な文字列
-    settings = EnvironmentSettings(environment="development")
-    assert settings.environment == Environment.DEVELOPMENT
+    with patch.dict(os.environ, {"ENVIRONMENT": "development"}):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.DEVELOPMENT
 
     # 大文字小文字混在
-    settings = EnvironmentSettings(environment="PRODUCTION")
-    assert settings.environment == Environment.PRODUCTION
+    with patch.dict(os.environ, {"ENVIRONMENT": "PRODUCTION"}):
+        settings = EnvironmentSettings()
+        assert settings.environment == Environment.PRODUCTION
 
     # 無効な環境種別
-    with pytest.raises(ValueError):
-        EnvironmentSettings(environment="invalid_env")
+    with patch.dict(os.environ, {"ENVIRONMENT": "invalid_env"}):
+        with pytest.raises(ValueError):
+            EnvironmentSettings()

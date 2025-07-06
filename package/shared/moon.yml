@@ -9,19 +9,22 @@ tasks:
       - "uv.lock"
 
   lint:
-    command: ruff check src/
+    command: ruff check src/ tests/
     inputs:
       - "src/**/*.py"
+      - "tests/**/*.py"
 
   format:
-    command: ruff format src/
+    command: ruff format src/ tests/
     inputs:
       - "src/**/*.py"
+      - "tests/**/*.py"
 
   typecheck:
-    command: mypy src/
+    command: mypy src/ tests/
     inputs:
       - "src/**/*.py"
+      - "tests/**/*.py"
 
   test:
     command: pytest tests/

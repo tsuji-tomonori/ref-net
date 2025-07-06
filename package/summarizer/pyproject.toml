@@ -47,3 +47,10 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 extra_checks = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"

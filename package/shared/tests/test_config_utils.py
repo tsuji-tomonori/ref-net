@@ -1,7 +1,7 @@
 """設定管理ユーティリティテスト."""
 
-import os
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -10,10 +10,10 @@ import pytest
 
 from refnet_shared.config.environment import Environment, EnvironmentSettings
 from refnet_shared.utils.config_utils import (
-    get_env_file_path,
+    check_required_env_vars,
     create_env_file_from_template,
     export_settings_to_json,
-    check_required_env_vars
+    get_env_file_path,
 )
 
 
@@ -113,7 +113,7 @@ def test_export_settings_to_json():
         assert output_path.exists()
 
         # JSON内容を確認
-        with open(output_path, 'r') as f:
+        with open(output_path) as f:
             data = json.load(f)
 
         # 含まれるべき情報

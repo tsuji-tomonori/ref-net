@@ -1,4 +1,5 @@
-def main():
+def main() -> None:
+    """メインエントリポイント."""
     print("Hello from refnet-summarizer!")
 
 

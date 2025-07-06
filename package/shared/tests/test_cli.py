@@ -1,15 +1,11 @@
 """CLIテスト."""
 
-import json
-import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from click.testing import CliRunner
 
-from refnet_shared.cli import main, info, validate, version, env
+from refnet_shared.cli import env, info, main, validate, version
 from refnet_shared.config import settings
 
 
@@ -94,7 +90,10 @@ def test_env_validate_command_success():
     """環境設定検証コマンド成功テスト."""
     runner = CliRunner()
     with patch("refnet_shared.cli.load_environment_settings") as mock_load:
-        from refnet_shared.config.environment import EnvironmentSettings, Environment, ConfigValidator
+        from refnet_shared.config.environment import (
+            Environment,
+            EnvironmentSettings,
+        )
 
         # モック設定オブジェクトを作成
         mock_settings = EnvironmentSettings(environment=Environment.DEVELOPMENT)
@@ -114,7 +113,10 @@ def test_env_validate_command_with_warnings():
     """環境設定検証コマンド 警告ありテスト."""
     runner = CliRunner()
     with patch("refnet_shared.cli.load_environment_settings") as mock_load:
-        from refnet_shared.config.environment import EnvironmentSettings, Environment, ConfigValidator
+        from refnet_shared.config.environment import (
+            Environment,
+            EnvironmentSettings,
+        )
 
         mock_settings = EnvironmentSettings(environment=Environment.DEVELOPMENT)
         mock_load.return_value = mock_settings
@@ -146,7 +148,7 @@ def test_env_export_command_success():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with patch("refnet_shared.cli.load_environment_settings") as mock_load:
-            from refnet_shared.config.environment import EnvironmentSettings, Environment
+            from refnet_shared.config.environment import Environment, EnvironmentSettings
 
             mock_settings = EnvironmentSettings(environment=Environment.DEVELOPMENT)
             mock_load.return_value = mock_settings
@@ -200,7 +202,7 @@ def test_env_check_command_missing_vars():
 
 def test_main_script_execution():
     """メインスクリプト実行テスト."""
-    with patch("refnet_shared.cli.main") as mock_main:
+    with patch("refnet_shared.cli.main"):
         # __name__ == "__main__" の条件をテスト
         exec("""
 import sys
