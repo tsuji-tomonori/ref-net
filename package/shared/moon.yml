@@ -2,26 +2,40 @@ type: library
 language: python
 
 tasks:
-  lint:
-    command: .venv/bin/ruff check .
+  install:
+    command: uv sync --extra dev
     inputs:
-      - "**/*.py"
+      - "pyproject.toml"
+      - "uv.lock"
+
+  lint:
+    command: ruff check src/
+    inputs:
+      - "src/**/*.py"
 
   format:
-    command: .venv/bin/ruff format .
+    command: ruff format src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   typecheck:
-    command: .venv/bin/mypy .
+    command: mypy src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   test:
-    command: .venv/bin/pytest tests/ -v
+    command: pytest tests/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
       - "tests/**/*.py"
+
+  build:
+    command: python -m build
+    inputs:
+      - "src/**/*.py"
+      - "pyproject.toml"
+    outputs:
+      - "dist/"
 
   check:
     deps:

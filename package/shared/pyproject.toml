@@ -1,14 +1,35 @@
 [project]
 name = "refnet-shared"
 version = "0.1.0"
-description = "共通ライブラリ（モデル、設定、ユーティリティ）"
+description = "Shared utilities and models for ref-net system"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mypy>=1.16.1",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "alembic>=1.13.0",
+    "psycopg2-binary>=2.9.0",
+    "redis>=5.0.0",
+    "celery>=5.3.0",
+    "structlog>=23.0.0",
+    "click>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
     "pytest>=8.4.1",
+    "pytest-cov>=6.0.0",
+    "mypy>=1.16.1",
     "ruff>=0.12.1",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+refnet-shared = "refnet_shared.cli:main"
 
 [tool.ruff]
 line-length = 100
@@ -47,3 +68,20 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 extra_checks = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src/refnet_shared --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/refnet_shared"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 80
