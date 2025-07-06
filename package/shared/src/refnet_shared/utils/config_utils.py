@@ -9,29 +9,14 @@ from refnet_shared.config.environment import Environment, EnvironmentSettings
 
 
 def get_env_file_path(environment: Environment) -> Path:
-    """環境ファイルパス取得.
-
-    Args:
-        environment: 環境種別
-
-    Returns:
-        Path: 環境ファイルのパス
-    """
+    """環境ファイルパス取得."""
     return Path(f".env.{environment.value}")
 
 
 def create_env_file_from_template(
     environment: Environment, overrides: dict[str, Any] | None = None
 ) -> None:
-    """テンプレートから環境ファイル作成.
-
-    Args:
-        environment: 環境種別
-        overrides: 上書きする設定値
-
-    Raises:
-        FileNotFoundError: テンプレートファイルが存在しない場合
-    """
+    """テンプレートから環境ファイル作成."""
     template_path = Path(".env.example")
     env_path = get_env_file_path(environment)
 
@@ -44,26 +29,21 @@ def create_env_file_from_template(
 
     # 環境固有の値を設定
     if overrides:
-        lines = content.split("\n")
+        lines = content.split('\n')
         for i, line in enumerate(lines):
-            if "=" in line and not line.strip().startswith("#"):
-                key = line.split("=")[0].strip()
+            if '=' in line and not line.strip().startswith('#'):
+                key = line.split('=')[0].strip()
                 if key in overrides:
                     lines[i] = f"{key}={overrides[key]}"
-        content = "\n".join(lines)
+        content = '\n'.join(lines)
 
     # ファイル作成
-    with open(env_path, "w") as f:
+    with open(env_path, 'w') as f:
         f.write(content)
 
 
 def export_settings_to_json(settings: EnvironmentSettings, output_path: Path) -> None:
-    """設定をJSONファイルにエクスポート（機密情報を除く）.
-
-    Args:
-        settings: エクスポート対象の設定
-        output_path: 出力ファイルパス
-    """
+    """設定をJSONファイルにエクスポート（機密情報を除く）."""
     safe_settings = {
         "app_name": settings.app_name,
         "version": settings.version,
@@ -94,19 +74,12 @@ def export_settings_to_json(settings: EnvironmentSettings, output_path: Path) ->
         "output_dir": settings.output_dir,
     }
 
-    with open(output_path, "w") as f:
+    with open(output_path, 'w') as f:
         json.dump(safe_settings, f, indent=2)
 
 
 def check_required_env_vars(environment: Environment) -> dict[str, bool]:
-    """必須環境変数のチェック.
-
-    Args:
-        environment: チェック対象の環境
-
-    Returns:
-        dict[str, bool]: 環境変数名と設定済みかどうかのマップ
-    """
+    """必須環境変数のチェック."""
     required_vars = {
         Environment.DEVELOPMENT: [
             "DATABASE__HOST",
