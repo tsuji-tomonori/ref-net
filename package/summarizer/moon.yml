@@ -1,0 +1,33 @@
+type: application
+language: python
+
+dependsOn:
+  - shared
+
+tasks:
+  lint:
+    command: .venv/bin/ruff check .
+    inputs:
+      - "**/*.py"
+
+  format:
+    command: .venv/bin/ruff format .
+    inputs:
+      - "**/*.py"
+
+  typecheck:
+    command: .venv/bin/mypy .
+    inputs:
+      - "**/*.py"
+
+  test:
+    command: .venv/bin/pytest tests/ -v
+    inputs:
+      - "**/*.py"
+      - "tests/**/*.py"
+
+  check:
+    deps:
+      - lint
+      - typecheck
+      - test

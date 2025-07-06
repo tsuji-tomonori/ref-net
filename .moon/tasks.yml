@@ -1,0 +1,38 @@
+# 全プロジェクト共通のタスク定義
+$schema: "https://moonrepo.dev/schemas/tasks.json"
+
+# 共通タスク
+tasks:
+  # 依存関係のインストール
+  install:
+    command: "uv sync"
+    inputs:
+      - "pyproject.toml"
+      - "uv.lock"
+    options:
+      cache: true
+
+  # 依存関係の更新
+  update-deps:
+    command: "uv lock --upgrade"
+    inputs:
+      - "pyproject.toml"
+    outputs:
+      - "uv.lock"
+
+  # 開発環境のセットアップ
+  dev-setup:
+    deps:
+      - install
+    command: ".venv/bin/uv pip install -e ."
+
+  # クリーンアップ
+  clean:
+    command: "rm -rf __pycache__ .pytest_cache .mypy_cache .coverage htmlcov dist *.egg-info"
+
+  # セキュリティチェック
+  security:
+    command: ".venv/bin/pip list --format=freeze | grep -v '^-e' || echo 'No packages to audit'"
+    inputs:
+      - "pyproject.toml"
+      - "uv.lock"

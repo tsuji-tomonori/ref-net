@@ -1,0 +1,47 @@
+type: library
+language: python
+
+tasks:
+  install:
+    command: uv sync --extra dev
+    inputs:
+      - "pyproject.toml"
+      - "uv.lock"
+
+  lint:
+    command: ruff check src/ tests/
+    inputs:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+
+  format:
+    command: ruff format src/ tests/
+    inputs:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+
+  typecheck:
+    command: mypy src/ tests/
+    inputs:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+
+  test:
+    command: pytest tests/
+    inputs:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+
+  build:
+    command: python -m build
+    inputs:
+      - "src/**/*.py"
+      - "pyproject.toml"
+    outputs:
+      - "dist/"
+
+  check:
+    deps:
+      - lint
+      - typecheck
+      - test

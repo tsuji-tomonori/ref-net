@@ -1,10 +1,25 @@
-# https://moonrepo.dev/docs/config/workspace
-$schema: './cache/schemas/workspace.json'
+# Workspace configuration
+$schema: "https://moonrepo.dev/schemas/workspace.json"
 
-# extends: './shared/workspace.yml'
-
+# プロジェクト設定
 projects:
-  tools: 'tools'
+  shared: "package/shared"
+  api: "package/api"
+  crawler: "package/crawler"
+  summarizer: "package/summarizer"
+  generator: "package/generator"
+
+# タスクランナー設定
+runner:
+  # キャッシュ設定
+  cacheLifetime: "7 days"
+
+  # 並列実行数（CPUコア数に基づく）
+  inheritColorsForPipedTasks: true
+  logRunningCommand: true
+
+
+# VCS設定
 vcs:
-  manager: 'git'
-  defaultBranch: 'main'
+  provider: "github"
+  defaultBranch: "main"

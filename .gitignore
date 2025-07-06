@@ -218,4 +218,25 @@ cdk-integ.out.*/
 ### moon ###
 .moon/cache
 .moon/docker
-.
+
+# Output
+output/
+
+# Environment
+.env.local
+.env.development
+.env.staging
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
