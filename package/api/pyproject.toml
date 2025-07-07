@@ -13,7 +13,7 @@ dependencies = [
     "redis>=5.0.0",
     "pydantic>=2.0.0",
     "structlog>=23.0.0",
-    "refnet-shared @ file:///home/t-tsuji/project/ref-net/package/shared",
+    "refnet-shared",
 ]
 
 [dependency-groups]
@@ -73,9 +73,16 @@ build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/refnet_api"]
+
+[tool.uv.sources]
+refnet-shared = { path = "../shared" }
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v"
+pythonpath = ["src"]
