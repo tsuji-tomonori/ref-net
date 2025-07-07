@@ -3,31 +3,30 @@ language: python
 
 tasks:
   install:
-    command: uv sync --extra dev
     inputs:
       - "pyproject.toml"
       - "uv.lock"
 
   lint:
-    command: ruff check src/ tests/
+    command: uv run ruff check src/ tests/
     inputs:
       - "src/**/*.py"
       - "tests/**/*.py"
 
   format:
-    command: ruff format src/ tests/
+    command: uv run ruff format src/ tests/
     inputs:
       - "src/**/*.py"
       - "tests/**/*.py"
 
   typecheck:
-    command: mypy src/ tests/
+    command: uv run mypy src/ tests/
     inputs:
       - "src/**/*.py"
       - "tests/**/*.py"
 
   test:
-    command: pytest tests/
+    command: uv run pytest tests/
     inputs:
       - "src/**/*.py"
       - "tests/**/*.py"
