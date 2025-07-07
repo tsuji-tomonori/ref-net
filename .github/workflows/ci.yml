@@ -35,7 +35,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        moon :install
+        moon run shared:install
+        moon run api:install
+        moon run crawler:install
+        moon run summarizer:install
+        moon run generator:install
 
     - name: Run pre-commit checks
       run: |

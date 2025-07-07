@@ -5,6 +5,12 @@ dependsOn:
   - shared
 
 tasks:
+  install:
+    command: uv sync --dev
+    inputs:
+      - "pyproject.toml"
+      - "uv.lock"
+
   lint:
     command: .venv/bin/ruff check .
     inputs:
