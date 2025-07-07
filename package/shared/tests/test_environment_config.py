@@ -35,12 +35,9 @@ def test_environment_settings_production():
 
 def test_config_validator_development():
     """開発環境設定検証テスト."""
-    with patch.dict(os.environ, {
-        "NODE_ENV": "development",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "test",
-        "DATABASE__PASSWORD": "test"
-    }):
+    with patch.dict(
+        os.environ, {"NODE_ENV": "development", "DATABASE__HOST": "localhost", "DATABASE__USERNAME": "test", "DATABASE__PASSWORD": "test"}
+    ):
         settings = EnvironmentSettings()
         assert settings.environment == Environment.DEVELOPMENT
 
@@ -50,12 +47,15 @@ def test_config_validator_development():
 
 def test_config_validator_production_weak_password():
     """本番環境弱いパスワード検証テスト."""
-    with patch.dict(os.environ, {
-        "ENVIRONMENT": "production",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "prod",
-        "DATABASE__PASSWORD": "test"  # 弱いパスワード
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "ENVIRONMENT": "production",
+            "DATABASE__HOST": "localhost",
+            "DATABASE__USERNAME": "prod",
+            "DATABASE__PASSWORD": "test",  # 弱いパスワード
+        },
+    ):
         settings = EnvironmentSettings()
         assert settings.environment == Environment.PRODUCTION
 
@@ -66,13 +66,16 @@ def test_config_validator_production_weak_password():
 
 def test_config_validator_production_weak_jwt():
     """本番環境弱いJWT検証テスト."""
-    with patch.dict(os.environ, {
-        "ENVIRONMENT": "production",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "prod",
-        "DATABASE__PASSWORD": "strong_password",
-        "SECURITY__JWT_SECRET": "development-secret"  # 弱いJWT
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "ENVIRONMENT": "production",
+            "DATABASE__HOST": "localhost",
+            "DATABASE__USERNAME": "prod",
+            "DATABASE__PASSWORD": "strong_password",
+            "SECURITY__JWT_SECRET": "development-secret",  # 弱いJWT
+        },
+    ):
         settings = EnvironmentSettings()
         assert settings.environment == Environment.PRODUCTION
 
@@ -83,13 +86,16 @@ def test_config_validator_production_weak_jwt():
 
 def test_config_validator_production_no_api_keys():
     """本番環境APIキーなし検証テスト."""
-    with patch.dict(os.environ, {
-        "ENVIRONMENT": "production",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "prod",
-        "DATABASE__PASSWORD": "strong_password",
-        "SECURITY__JWT_SECRET": "very_secure_jwt_secret_key_for_production"
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "ENVIRONMENT": "production",
+            "DATABASE__HOST": "localhost",
+            "DATABASE__USERNAME": "prod",
+            "DATABASE__PASSWORD": "strong_password",
+            "SECURITY__JWT_SECRET": "very_secure_jwt_secret_key_for_production",
+        },
+    ):
         settings = EnvironmentSettings()
         assert settings.environment == Environment.PRODUCTION
 
@@ -190,15 +196,12 @@ def test_environment_invalid_type():
 
 def test_config_validator_missing_database_fields():
     """データベース必須フィールド不足テスト."""
-    with patch.dict(os.environ, {
-        "DATABASE__HOST": "",
-        "DATABASE__USERNAME": "",
-        "DATABASE__PASSWORD": ""
-    }, clear=True):
+    with patch.dict(os.environ, {"DATABASE__HOST": "", "DATABASE__USERNAME": "", "DATABASE__PASSWORD": ""}, clear=True):
         settings = EnvironmentSettings()
         validator = ConfigValidator(settings)
         # エラーがある場合例外が発生するので、それをキャッチ
         from refnet_shared.exceptions import ConfigurationError
+
         try:
             validator.validate_all()
         except ConfigurationError:
@@ -213,15 +216,19 @@ def test_config_validator_missing_database_fields():
 
 def test_config_validator_log_directory_validation():
     """ログディレクトリ検証テスト."""
-    with patch.dict(os.environ, {
-        "LOGGING__FILE_PATH": "/nonexistent/directory/app.log",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "test",
-        "DATABASE__PASSWORD": "test"
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "LOGGING__FILE_PATH": "/nonexistent/directory/app.log",
+            "DATABASE__HOST": "localhost",
+            "DATABASE__USERNAME": "test",
+            "DATABASE__PASSWORD": "test",
+        },
+    ):
         settings = EnvironmentSettings()
         validator = ConfigValidator(settings)
         from refnet_shared.exceptions import ConfigurationError
+
         try:
             validator.validate_all()
         except ConfigurationError:
@@ -236,16 +243,20 @@ def test_environment_settings_with_warnings():
     """警告付き設定読み込みテスト."""
     from refnet_shared.config.environment import load_environment_settings
 
-    with patch.dict(os.environ, {
-        "ENVIRONMENT": "production",
-        "LOGGING__LEVEL": "DEBUG",
-        "DATABASE__HOST": "localhost",
-        "DATABASE__USERNAME": "admin",
-        "DATABASE__PASSWORD": "strongpassword123",
-        "JWT__SECRET_KEY": "very_strong_secret_key_for_production_use"
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "ENVIRONMENT": "production",
+            "LOGGING__LEVEL": "DEBUG",
+            "DATABASE__HOST": "localhost",
+            "DATABASE__USERNAME": "admin",
+            "DATABASE__PASSWORD": "strongpassword123",
+            "JWT__SECRET_KEY": "very_strong_secret_key_for_production_use",
+        },
+    ):
         # warnings.warn が呼ばれることをテスト
         import warnings
+
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
@@ -268,12 +279,7 @@ def test_environment_settings_with_warnings():
 def test_config_validator_edge_cases():
     """設定検証エッジケーステスト."""
     # 空文字列のデータベース設定
-    with patch.dict(os.environ, {
-        "DATABASE__HOST": "",
-        "DATABASE__USERNAME": "",
-        "DATABASE__PASSWORD": "",
-        "DATABASE__NAME": ""
-    }, clear=True):
+    with patch.dict(os.environ, {"DATABASE__HOST": "", "DATABASE__USERNAME": "", "DATABASE__PASSWORD": "", "DATABASE__NAME": ""}, clear=True):
         settings = EnvironmentSettings()
         validator = ConfigValidator(settings)
 
@@ -307,10 +313,7 @@ def test_config_validator_extreme_values():
         pass
 
     # JWTシークレットが32文字未満のエラーが含まれることを確認
-    jwt_error_found = any(
-        "JWT secret must be at least 32 characters" in error
-        for error in validator.errors
-    )
+    jwt_error_found = any("JWT secret must be at least 32 characters" in error for error in validator.errors)
     assert jwt_error_found, f"Expected JWT length error, but got: {validator.errors}"
 
 

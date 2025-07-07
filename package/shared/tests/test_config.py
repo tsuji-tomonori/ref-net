@@ -5,13 +5,7 @@ from refnet_shared.config import DatabaseConfig, RedisConfig, Settings
 
 def test_database_config():
     """データベース設定テスト."""
-    config = DatabaseConfig(
-        host="testhost",
-        port=5433,
-        database="testdb",
-        username="testuser",
-        password="testpass"
-    )
+    config = DatabaseConfig(host="testhost", port=5433, database="testdb", username="testuser", password="testpass")
 
     expected_url = "postgresql://testuser:testpass@testhost:5433/testdb"
     assert config.url == expected_url

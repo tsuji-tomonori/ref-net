@@ -103,12 +103,14 @@ class MigrationManager:
             revisions = []
 
             for revision in script_dir.walk_revisions():
-                revisions.append({
-                    "revision_id": revision.revision,
-                    "down_revision": revision.down_revision,
-                    "message": revision.doc,
-                    "is_current": revision.revision == self.get_current_revision(),
-                })
+                revisions.append(
+                    {
+                        "revision_id": revision.revision,
+                        "down_revision": revision.down_revision,
+                        "message": revision.doc,
+                        "is_current": revision.revision == self.get_current_revision(),
+                    }
+                )
 
             return revisions
 
@@ -118,13 +120,7 @@ class MigrationManager:
 
     def validate_migrations(self) -> dict[str, Any]:
         """マイグレーション検証."""
-        result: dict[str, Any] = {
-            "status": "valid",
-            "current_revision": None,
-            "available_migrations": 0,
-            "pending_migrations": 0,
-            "issues": []
-        }
+        result: dict[str, Any] = {"status": "valid", "current_revision": None, "available_migrations": 0, "pending_migrations": 0, "issues": []}
 
         try:
             # 現在のリビジョン
@@ -205,7 +201,7 @@ class MigrationManager:
                 f"--dbname={self.settings.database.database}",
                 f"--file={backup_file}",
                 "--no-password",
-                "--verbose"
+                "--verbose",
             ]
 
             env = os.environ.copy()

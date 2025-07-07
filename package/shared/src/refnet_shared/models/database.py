@@ -1,6 +1,6 @@
 """データベースモデル定義."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
@@ -35,6 +35,7 @@ metadata = MetaData(
 
 class Base(DeclarativeBase):
     """SQLAlchemyベースクラス."""
+
     metadata = metadata
 
 
@@ -61,21 +62,22 @@ def get_json_type() -> type:
 
 # 多対多関係のためのアソシエーションテーブル
 paper_authors = Table(
-    'paper_authors',
+    "paper_authors",
     Base.metadata,
-    Column('paper_id', String, ForeignKey('papers.paper_id'), primary_key=True),
-    Column('author_id', String, ForeignKey('authors.author_id'), primary_key=True),
-    Column('position', Integer, nullable=False),  # 著者の順番
-    Column('created_at', DateTime, default=datetime.utcnow),
-    Index('idx_paper_authors_paper_id', 'paper_id'),
-    Index('idx_paper_authors_author_id', 'author_id'),
-    Index('idx_paper_authors_position', 'paper_id', 'position'),
+    Column("paper_id", String, ForeignKey("papers.paper_id"), primary_key=True),
+    Column("author_id", String, ForeignKey("authors.author_id"), primary_key=True),
+    Column("position", Integer, nullable=False),  # 著者の順番
+    Column("created_at", DateTime, default=lambda: datetime.now(timezone.utc)),
+    Index("idx_paper_authors_paper_id", "paper_id"),
+    Index("idx_paper_authors_author_id", "author_id"),
+    Index("idx_paper_authors_position", "paper_id", "position"),
 )
 
 
 class Paper(Base):
     """論文モデル."""
-    __tablename__ = 'papers'
+
+    __tablename__ = "papers"
 
     # 基本情報
     paper_id: Mapped[str] = mapped_column(String(255), primary_key=True)
@@ -89,9 +91,9 @@ class Paper(Base):
     influence_score: Mapped[float | None] = mapped_column(Float)  # 影響度スコア
 
     # 処理状態
-    crawl_status: Mapped[str] = mapped_column(String(50), default='pending', nullable=False)
-    pdf_status: Mapped[str] = mapped_column(String(50), default='pending', nullable=False)
-    summary_status: Mapped[str] = mapped_column(String(50), default='pending', nullable=False)
+    crawl_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    pdf_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    summary_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
 
     # PDF情報
     pdf_url: Mapped[str | None] = mapped_column(String(2048))
@@ -104,40 +106,33 @@ class Paper(Base):
     summary_created_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # 出版情報
-    venue_id: Mapped[str | None] = mapped_column(String(255), ForeignKey('venues.venue_id'))
-    journal_id: Mapped[str | None] = mapped_column(String(255), ForeignKey('journals.journal_id'))
+    venue_id: Mapped[str | None] = mapped_column(String(255), ForeignKey("venues.venue_id"))
+    journal_id: Mapped[str | None] = mapped_column(String(255), ForeignKey("journals.journal_id"))
 
     # 言語・分野情報
     language: Mapped[str | None] = mapped_column(String(10))  # ISO言語コード
     is_open_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     # 最後のクロール日時
     last_crawled_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # リレーションシップ
-    authors: Mapped[list["Author"]] = relationship(
-        "Author",
-        secondary=paper_authors,
-        back_populates="papers",
-        order_by="paper_authors.c.position"
-    )
+    authors: Mapped[list["Author"]] = relationship("Author", secondary=paper_authors, back_populates="papers", order_by="paper_authors.c.position")
     venue: Mapped[Optional["Venue"]] = relationship("Venue", back_populates="papers")
     journal: Mapped[Optional["Journal"]] = relationship("Journal", back_populates="papers")
 
     # 引用関係
     cited_papers: Mapped[list["PaperRelation"]] = relationship(
-        "PaperRelation",
-        foreign_keys="PaperRelation.source_paper_id",
-        back_populates="source_paper"
+        "PaperRelation", foreign_keys="PaperRelation.source_paper_id", back_populates="source_paper"
     )
     citing_papers: Mapped[list["PaperRelation"]] = relationship(
-        "PaperRelation",
-        foreign_keys="PaperRelation.target_paper_id",
-        back_populates="target_paper"
+        "PaperRelation", foreign_keys="PaperRelation.target_paper_id", back_populates="target_paper"
     )
 
     # 外部ID
@@ -151,30 +146,31 @@ class Paper(Base):
 
     # インデックス・制約
     __table_args__ = (
-        Index('idx_papers_title_fts', 'title'),  # 全文検索用
-        Index('idx_papers_year', 'year'),
-        Index('idx_papers_citation_count', 'citation_count'),
-        Index('idx_papers_crawl_status', 'crawl_status'),
-        Index('idx_papers_pdf_status', 'pdf_status'),
-        Index('idx_papers_summary_status', 'summary_status'),
-        Index('idx_papers_created_at', 'created_at'),
-        Index('idx_papers_updated_at', 'updated_at'),
-        Index('idx_papers_last_crawled_at', 'last_crawled_at'),
-        Index('idx_papers_venue_year', 'venue_id', 'year'),  # 複合インデックス
-        Index('idx_papers_journal_year', 'journal_id', 'year'),  # 複合インデックス
-        CheckConstraint('year >= 1900 AND year <= 2100', name='check_year_range'),
-        CheckConstraint('citation_count >= 0', name='check_citation_count_positive'),
-        CheckConstraint('reference_count >= 0', name='check_reference_count_positive'),
-        CheckConstraint('pdf_size >= 0', name='check_pdf_size_positive'),
-        CheckConstraint("crawl_status IN ('pending', 'running', 'completed', 'failed')", name='check_crawl_status'),
-        CheckConstraint("pdf_status IN ('pending', 'running', 'completed', 'failed', 'unavailable')", name='check_pdf_status'),
-        CheckConstraint("summary_status IN ('pending', 'running', 'completed', 'failed')", name='check_summary_status'),
+        Index("idx_papers_title_fts", "title"),  # 全文検索用
+        Index("idx_papers_year", "year"),
+        Index("idx_papers_citation_count", "citation_count"),
+        Index("idx_papers_crawl_status", "crawl_status"),
+        Index("idx_papers_pdf_status", "pdf_status"),
+        Index("idx_papers_summary_status", "summary_status"),
+        Index("idx_papers_created_at", "created_at"),
+        Index("idx_papers_updated_at", "updated_at"),
+        Index("idx_papers_last_crawled_at", "last_crawled_at"),
+        Index("idx_papers_venue_year", "venue_id", "year"),  # 複合インデックス
+        Index("idx_papers_journal_year", "journal_id", "year"),  # 複合インデックス
+        CheckConstraint("year >= 1900 AND year <= 2100", name="check_year_range"),
+        CheckConstraint("citation_count >= 0", name="check_citation_count_positive"),
+        CheckConstraint("reference_count >= 0", name="check_reference_count_positive"),
+        CheckConstraint("pdf_size >= 0", name="check_pdf_size_positive"),
+        CheckConstraint("crawl_status IN ('pending', 'running', 'completed', 'failed')", name="check_crawl_status"),
+        CheckConstraint("pdf_status IN ('pending', 'running', 'completed', 'failed', 'unavailable')", name="check_pdf_status"),
+        CheckConstraint("summary_status IN ('pending', 'running', 'completed', 'failed')", name="check_summary_status"),
     )
 
 
 class Author(Base):
     """著者モデル."""
-    __tablename__ = 'authors'
+
+    __tablename__ = "authors"
 
     author_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     name: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -192,37 +188,36 @@ class Author(Base):
     orcid: Mapped[str | None] = mapped_column(String(19))  # ORCID ID
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     # リレーションシップ
-    papers: Mapped[list["Paper"]] = relationship(
-        "Paper",
-        secondary=paper_authors,
-        back_populates="authors"
-    )
+    papers: Mapped[list["Paper"]] = relationship("Paper", secondary=paper_authors, back_populates="authors")
 
     # インデックス・制約
     __table_args__ = (
-        Index('idx_authors_name', 'name'),
-        Index('idx_authors_name_fts', 'name'),  # 全文検索用
-        Index('idx_authors_paper_count', 'paper_count'),
-        Index('idx_authors_citation_count', 'citation_count'),
-        Index('idx_authors_h_index', 'h_index'),
-        Index('idx_authors_orcid', 'orcid'),
-        CheckConstraint('paper_count >= 0', name='check_paper_count_positive'),
-        CheckConstraint('citation_count >= 0', name='check_citation_count_positive'),
-        CheckConstraint('h_index >= 0', name='check_h_index_positive'),
+        Index("idx_authors_name", "name"),
+        Index("idx_authors_name_fts", "name"),  # 全文検索用
+        Index("idx_authors_paper_count", "paper_count"),
+        Index("idx_authors_citation_count", "citation_count"),
+        Index("idx_authors_h_index", "h_index"),
+        Index("idx_authors_orcid", "orcid"),
+        CheckConstraint("paper_count >= 0", name="check_paper_count_positive"),
+        CheckConstraint("citation_count >= 0", name="check_citation_count_positive"),
+        CheckConstraint("h_index >= 0", name="check_h_index_positive"),
     )
 
 
 class PaperRelation(Base):
     """論文間の関係（引用・被引用）."""
-    __tablename__ = 'paper_relations'
+
+    __tablename__ = "paper_relations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    source_paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
-    target_paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
+    source_paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
+    target_paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
     relation_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'citation' or 'reference'
     hop_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)  # 起点からの距離
 
@@ -231,38 +226,31 @@ class PaperRelation(Base):
     relevance_score: Mapped[float | None] = mapped_column(Float)  # 関係の関連度
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # リレーションシップ
-    source_paper: Mapped["Paper"] = relationship(
-        "Paper",
-        foreign_keys=[source_paper_id],
-        back_populates="cited_papers"
-    )
-    target_paper: Mapped["Paper"] = relationship(
-        "Paper",
-        foreign_keys=[target_paper_id],
-        back_populates="citing_papers"
-    )
+    source_paper: Mapped["Paper"] = relationship("Paper", foreign_keys=[source_paper_id], back_populates="cited_papers")
+    target_paper: Mapped["Paper"] = relationship("Paper", foreign_keys=[target_paper_id], back_populates="citing_papers")
 
     # インデックス・制約
     __table_args__ = (
-        UniqueConstraint('source_paper_id', 'target_paper_id', 'relation_type', name='uq_paper_relation'),
-        Index('idx_paper_relations_source', 'source_paper_id'),
-        Index('idx_paper_relations_target', 'target_paper_id'),
-        Index('idx_paper_relations_type', 'relation_type'),
-        Index('idx_paper_relations_hop_count', 'hop_count'),
-        Index('idx_paper_relations_source_hop', 'source_paper_id', 'hop_count'),  # 複合インデックス
-        Index('idx_paper_relations_target_hop', 'target_paper_id', 'hop_count'),  # 複合インデックス
-        CheckConstraint('hop_count >= 1', name='check_hop_count_positive'),
-        CheckConstraint("relation_type IN ('citation', 'reference')", name='check_relation_type'),
-        CheckConstraint('source_paper_id != target_paper_id', name='check_no_self_reference'),
+        UniqueConstraint("source_paper_id", "target_paper_id", "relation_type", name="uq_paper_relation"),
+        Index("idx_paper_relations_source", "source_paper_id"),
+        Index("idx_paper_relations_target", "target_paper_id"),
+        Index("idx_paper_relations_type", "relation_type"),
+        Index("idx_paper_relations_hop_count", "hop_count"),
+        Index("idx_paper_relations_source_hop", "source_paper_id", "hop_count"),  # 複合インデックス
+        Index("idx_paper_relations_target_hop", "target_paper_id", "hop_count"),  # 複合インデックス
+        CheckConstraint("hop_count >= 1", name="check_hop_count_positive"),
+        CheckConstraint("relation_type IN ('citation', 'reference')", name="check_relation_type"),
+        CheckConstraint("source_paper_id != target_paper_id", name="check_no_self_reference"),
     )
 
 
 class Venue(Base):
     """会議・学会モデル."""
-    __tablename__ = 'venues'
+
+    __tablename__ = "venues"
 
     venue_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     name: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -278,24 +266,27 @@ class Venue(Base):
     h_index: Mapped[int | None] = mapped_column(Integer)
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     # リレーションシップ
     papers: Mapped[list["Paper"]] = relationship("Paper", back_populates="venue")
 
     # インデックス・制約
     __table_args__ = (
-        Index('idx_venues_name', 'name'),
-        Index('idx_venues_short_name', 'short_name'),
-        Index('idx_venues_type', 'type'),
-        Index('idx_venues_rank', 'rank'),
+        Index("idx_venues_name", "name"),
+        Index("idx_venues_short_name", "short_name"),
+        Index("idx_venues_type", "type"),
+        Index("idx_venues_rank", "rank"),
     )
 
 
 class Journal(Base):
     """ジャーナルモデル."""
-    __tablename__ = 'journals'
+
+    __tablename__ = "journals"
 
     journal_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     name: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -310,77 +301,82 @@ class Journal(Base):
     h_index: Mapped[int | None] = mapped_column(Integer)
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     # リレーションシップ
     papers: Mapped[list["Paper"]] = relationship("Paper", back_populates="journal")
 
     # インデックス・制約
     __table_args__ = (
-        Index('idx_journals_name', 'name'),
-        Index('idx_journals_issn', 'issn'),
-        Index('idx_journals_publisher', 'publisher'),
-        Index('idx_journals_impact_factor', 'impact_factor'),
+        Index("idx_journals_name", "name"),
+        Index("idx_journals_issn", "issn"),
+        Index("idx_journals_publisher", "publisher"),
+        Index("idx_journals_impact_factor", "impact_factor"),
     )
 
 
 class PaperExternalId(Base):
     """論文の外部識別子."""
-    __tablename__ = 'paper_external_ids'
+
+    __tablename__ = "paper_external_ids"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
+    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
     id_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'DOI', 'ArXiv', 'PubMed', etc.
     external_id: Mapped[str] = mapped_column(String(500), nullable=False)
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # リレーションシップ
     paper: Mapped["Paper"] = relationship("Paper", back_populates="external_ids")
 
     # インデックス・制約
     __table_args__ = (
-        UniqueConstraint('paper_id', 'id_type', 'external_id', name='uq_paper_external_id'),
-        Index('idx_paper_external_ids_paper_id', 'paper_id'),
-        Index('idx_paper_external_ids_type', 'id_type'),
-        Index('idx_paper_external_ids_external_id', 'external_id'),
-        Index('idx_paper_external_ids_type_external', 'id_type', 'external_id'),  # 複合インデックス
-        CheckConstraint("id_type IN ('DOI', 'ArXiv', 'PubMed', 'PMCID', 'MAG', 'DBLP', 'ACL')", name='check_id_type'),
+        UniqueConstraint("paper_id", "id_type", "external_id", name="uq_paper_external_id"),
+        Index("idx_paper_external_ids_paper_id", "paper_id"),
+        Index("idx_paper_external_ids_type", "id_type"),
+        Index("idx_paper_external_ids_external_id", "external_id"),
+        Index("idx_paper_external_ids_type_external", "id_type", "external_id"),  # 複合インデックス
+        CheckConstraint("id_type IN ('DOI', 'ArXiv', 'PubMed', 'PMCID', 'MAG', 'DBLP', 'ACL')", name="check_id_type"),
     )
 
 
 class PaperFieldOfStudy(Base):
     """論文の研究分野."""
-    __tablename__ = 'paper_fields_of_study'
+
+    __tablename__ = "paper_fields_of_study"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
+    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
     field_name: Mapped[str] = mapped_column(String(200), nullable=False)
     confidence_score: Mapped[float | None] = mapped_column(Float)  # 分野分類の信頼度
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # リレーションシップ
     paper: Mapped["Paper"] = relationship("Paper", back_populates="fields_of_study")
 
     # インデックス・制約
     __table_args__ = (
-        UniqueConstraint('paper_id', 'field_name', name='uq_paper_field_of_study'),
-        Index('idx_paper_fields_of_study_paper_id', 'paper_id'),
-        Index('idx_paper_fields_of_study_field_name', 'field_name'),
-        Index('idx_paper_fields_of_study_confidence', 'confidence_score'),
+        UniqueConstraint("paper_id", "field_name", name="uq_paper_field_of_study"),
+        Index("idx_paper_fields_of_study_paper_id", "paper_id"),
+        Index("idx_paper_fields_of_study_field_name", "field_name"),
+        Index("idx_paper_fields_of_study_confidence", "confidence_score"),
     )
 
 
 class PaperKeyword(Base):
     """AI生成キーワード."""
-    __tablename__ = 'paper_keywords'
+
+    __tablename__ = "paper_keywords"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
+    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
     keyword: Mapped[str] = mapped_column(String(200), nullable=False)
     relevance_score: Mapped[float | None] = mapped_column(Float)
 
@@ -389,29 +385,30 @@ class PaperKeyword(Base):
     model_name: Mapped[str | None] = mapped_column(String(100))  # 使用したモデル名
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # リレーションシップ
     paper: Mapped["Paper"] = relationship("Paper", back_populates="keywords")
 
     # インデックス・制約
     __table_args__ = (
-        UniqueConstraint('paper_id', 'keyword', name='uq_paper_keyword'),
-        Index('idx_paper_keywords_paper_id', 'paper_id'),
-        Index('idx_paper_keywords_keyword', 'keyword'),
-        Index('idx_paper_keywords_relevance_score', 'relevance_score'),
-        Index('idx_paper_keywords_extraction_method', 'extraction_method'),
+        UniqueConstraint("paper_id", "keyword", name="uq_paper_keyword"),
+        Index("idx_paper_keywords_paper_id", "paper_id"),
+        Index("idx_paper_keywords_keyword", "keyword"),
+        Index("idx_paper_keywords_relevance_score", "relevance_score"),
+        Index("idx_paper_keywords_extraction_method", "extraction_method"),
     )
 
 
 class ProcessingQueue(Base):
     """処理キューモデル."""
-    __tablename__ = 'processing_queue'
+
+    __tablename__ = "processing_queue"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey('papers.paper_id'), nullable=False)
+    paper_id: Mapped[str] = mapped_column(String(255), ForeignKey("papers.paper_id"), nullable=False)
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'crawl', 'summarize', 'generate'
-    status: Mapped[str] = mapped_column(String(50), default='pending', nullable=False)  # 'pending', 'running', 'completed', 'failed'
+    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)  # 'pending', 'running', 'completed', 'failed'
     priority: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # エラー・再試行情報
@@ -426,23 +423,25 @@ class ProcessingQueue(Base):
     parameters: Mapped[dict | None] = mapped_column(get_json_type())
 
     # タイムスタンプ
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # インデックス・制約
     __table_args__ = (
-        Index('idx_processing_queue_paper_id', 'paper_id'),
-        Index('idx_processing_queue_task_type', 'task_type'),
-        Index('idx_processing_queue_status', 'status'),
-        Index('idx_processing_queue_priority', 'priority'),
-        Index('idx_processing_queue_created_at', 'created_at'),
-        Index('idx_processing_queue_status_priority', 'status', 'priority'),  # 複合インデックス
-        Index('idx_processing_queue_task_status', 'task_type', 'status'),  # 複合インデックス
-        CheckConstraint('priority >= 0', name='check_priority_positive'),
-        CheckConstraint('retry_count >= 0', name='check_retry_count_positive'),
-        CheckConstraint('max_retries >= 0', name='check_max_retries_positive'),
-        CheckConstraint("task_type IN ('crawl', 'summarize', 'generate')", name='check_task_type'),
-        CheckConstraint("status IN ('pending', 'running', 'completed', 'failed')", name='check_status'),
+        Index("idx_processing_queue_paper_id", "paper_id"),
+        Index("idx_processing_queue_task_type", "task_type"),
+        Index("idx_processing_queue_status", "status"),
+        Index("idx_processing_queue_priority", "priority"),
+        Index("idx_processing_queue_created_at", "created_at"),
+        Index("idx_processing_queue_status_priority", "status", "priority"),  # 複合インデックス
+        Index("idx_processing_queue_task_status", "task_type", "status"),  # 複合インデックス
+        CheckConstraint("priority >= 0", name="check_priority_positive"),
+        CheckConstraint("retry_count >= 0", name="check_retry_count_positive"),
+        CheckConstraint("max_retries >= 0", name="check_max_retries_positive"),
+        CheckConstraint("task_type IN ('crawl', 'summarize', 'generate')", name="check_task_type"),
+        CheckConstraint("status IN ('pending', 'running', 'completed', 'failed')", name="check_status"),
     )

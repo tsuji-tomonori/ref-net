@@ -12,7 +12,7 @@ from refnet_shared.utils.migration_utils import MigrationManager
 def test_migration_manager():
     """テスト用マイグレーションマネージャー."""
     # テスト用alembic.iniファイル作成
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".ini", delete=False) as f:
         f.write("""
 [alembic]
 script_location = alembic
@@ -80,6 +80,7 @@ def test_create_migration_error_handling(test_migration_manager, monkeypatch):
         raise Exception("Test error")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "revision", mock_revision)
 
     with pytest.raises(DatabaseError, match="Migration creation failed"):
@@ -95,6 +96,7 @@ def test_run_migrations_error_handling(test_migration_manager, monkeypatch):
         raise Exception("Test upgrade error")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "upgrade", mock_upgrade)
 
     with pytest.raises(DatabaseError, match="Migration execution failed"):
@@ -110,6 +112,7 @@ def test_downgrade_error_handling(test_migration_manager, monkeypatch):
         raise Exception("Test downgrade error")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "downgrade", mock_downgrade)
 
     with pytest.raises(DatabaseError, match="Migration downgrade failed"):
@@ -125,6 +128,7 @@ def test_create_migration_without_autogenerate(test_migration_manager, monkeypat
         raise Exception("Test error for manual migration")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "revision", mock_revision)
     with pytest.raises(DatabaseError, match="Migration creation failed"):
         test_migration_manager.create_migration("test migration", autogenerate=False)
@@ -138,6 +142,7 @@ def test_run_migrations_to_specific_revision(test_migration_manager, monkeypatch
         raise Exception("Test upgrade to specific revision error")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "upgrade", mock_upgrade)
     with pytest.raises(DatabaseError, match="Migration execution failed"):
         test_migration_manager.run_migrations("abc123")
@@ -145,6 +150,7 @@ def test_run_migrations_to_specific_revision(test_migration_manager, monkeypatch
 
 def test_migration_validation_with_issues(test_migration_manager, monkeypatch):
     """問題ありマイグレーション検証テスト."""
+
     # ScriptDirectoryからの取得をモック
     def mock_get_current_revision():
         return "current456"  # headと異なる値
@@ -187,6 +193,7 @@ def test_migration_validation_with_issues(test_migration_manager, monkeypatch):
 
 def test_migration_validation_no_history(test_migration_manager, monkeypatch):
     """マイグレーション履歴なし検証テスト."""
+
     # 現在のリビジョンがNoneの場合（初回状態）
     def mock_get_current_revision():
         return None
@@ -221,6 +228,7 @@ def test_reset_database_with_confirmation(test_migration_manager):
     """データベースリセット確認ありテスト."""
     # 確認ありでリセットを実行（エラーが発生する可能性があるが、例外処理をテスト）
     from refnet_shared.exceptions import DatabaseError
+
     try:
         test_migration_manager.reset_database(confirm=True)
     except DatabaseError:
@@ -279,8 +287,9 @@ def test_validate_migrations_script_error(test_migration_manager, monkeypatch):
     # エラー処理によって "error" または "issues_found" のいずれかになる
     assert result["status"] in ["error", "issues_found"]
     # エラーの場合は "error" フィールドに、issues_foundの場合は "issues" フィールドにメッセージが含まれる
-    has_error = ("error" in result and "Script directory error" in result["error"]) or \
-                ("issues" in result and any("Script directory error" in str(issue) for issue in result["issues"]))
+    has_error = ("error" in result and "Script directory error" in result["error"]) or (
+        "issues" in result and any("Script directory error" in str(issue) for issue in result["issues"])
+    )
     assert has_error
 
 
@@ -293,6 +302,7 @@ def test_reset_database_downgrade_error(test_migration_manager, monkeypatch):
         raise Exception("Downgrade failed during reset")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "downgrade", mock_downgrade)
 
     with pytest.raises(DatabaseError, match="Database reset failed"):
@@ -312,6 +322,7 @@ def test_reset_database_upgrade_error(test_migration_manager, monkeypatch):
         raise Exception("Upgrade failed during reset")
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "downgrade", mock_downgrade)
     monkeypatch.setattr(alembic.command, "upgrade", mock_upgrade)
 
@@ -344,6 +355,7 @@ def test_migration_invalid_revision_format(test_migration_manager, monkeypatch):
         return None
 
     import alembic.command
+
     monkeypatch.setattr(alembic.command, "upgrade", mock_upgrade)
 
     with pytest.raises(DatabaseError, match="Migration execution failed"):

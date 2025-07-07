@@ -20,9 +20,7 @@ class DatabaseConfig(BaseModel):
         """SQLAlchemy接続URL."""
         if not self.host or not self.username or not self.password:
             raise ValueError("Database configuration is incomplete")
-        return (
-            f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
-        )
+        return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 
 class RedisConfig(BaseModel):

@@ -103,7 +103,7 @@ def test_export_settings_to_json():
     # デフォルト設定をベースにして、部分的に上書き
     settings = EnvironmentSettings(environment=Environment.PRODUCTION)
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         output_path = Path(f.name)
 
     try:
@@ -128,12 +128,10 @@ def test_export_settings_to_json():
         output_path.unlink()
 
 
-@patch.dict(os.environ, {
-    "DATABASE__HOST": "test-host",
-    "DATABASE__USERNAME": "test-user",
-    "DATABASE__PASSWORD": "test-pass",
-    "SECURITY__JWT_SECRET": "test-secret"
-})
+@patch.dict(
+    os.environ,
+    {"DATABASE__HOST": "test-host", "DATABASE__USERNAME": "test-user", "DATABASE__PASSWORD": "test-pass", "SECURITY__JWT_SECRET": "test-secret"},
+)
 def test_check_required_env_vars_all_set():
     """必須環境変数チェック（全て設定済み）テスト."""
     result = check_required_env_vars(Environment.STAGING)
@@ -145,10 +143,14 @@ def test_check_required_env_vars_all_set():
     assert result["SECURITY__JWT_SECRET"] is True
 
 
-@patch.dict(os.environ, {
-    "DATABASE__HOST": "test-host",
-    # DATABASE__USERNAME と DATABASE__PASSWORD は未設定
-}, clear=True)
+@patch.dict(
+    os.environ,
+    {
+        "DATABASE__HOST": "test-host",
+        # DATABASE__USERNAME と DATABASE__PASSWORD は未設定
+    },
+    clear=True,
+)
 def test_check_required_env_vars_missing():
     """必須環境変数チェック（一部未設定）テスト."""
     result = check_required_env_vars(Environment.DEVELOPMENT)
@@ -175,11 +177,5 @@ def test_check_required_env_vars_production():
     result = check_required_env_vars(Environment.PRODUCTION)
 
     # 本番環境の必須変数
-    expected_vars = [
-        "DATABASE__HOST",
-        "DATABASE__USERNAME",
-        "DATABASE__PASSWORD",
-        "SECURITY__JWT_SECRET",
-        "OPENAI_API_KEY"
-    ]
+    expected_vars = ["DATABASE__HOST", "DATABASE__USERNAME", "DATABASE__PASSWORD", "SECURITY__JWT_SECRET", "OPENAI_API_KEY"]
     assert set(result.keys()) == set(expected_vars)

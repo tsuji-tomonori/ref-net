@@ -34,11 +34,7 @@ class DatabaseManager:
             echo=settings.debug,  # デバッグ時にSQLログを出力
         )
 
-        self.SessionLocal = sessionmaker(
-            autocommit=False,
-            autoflush=False,
-            bind=self.engine
-        )
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
     def create_tables(self) -> None:
         """テーブル作成."""
@@ -81,19 +77,19 @@ class DatabaseManager:
                     # Try to get pool info, but handle if it's not available (e.g., SQLite)
                     pool_info = {}
                     try:
-                        if hasattr(self.engine.pool, 'size') and callable(self.engine.pool.size):
+                        if hasattr(self.engine.pool, "size") and callable(self.engine.pool.size):
                             pool_info["engine_pool_size"] = self.engine.pool.size()
-                        elif hasattr(self.engine.pool, 'size'):
+                        elif hasattr(self.engine.pool, "size"):
                             pool_info["engine_pool_size"] = self.engine.pool.size
 
-                        if hasattr(self.engine.pool, 'checkedin') and callable(self.engine.pool.checkedin):
+                        if hasattr(self.engine.pool, "checkedin") and callable(self.engine.pool.checkedin):
                             pool_info["engine_pool_checked_in"] = self.engine.pool.checkedin()
-                        elif hasattr(self.engine.pool, 'checkedin'):
+                        elif hasattr(self.engine.pool, "checkedin"):
                             pool_info["engine_pool_checked_in"] = self.engine.pool.checkedin
 
-                        if hasattr(self.engine.pool, 'checkedout') and callable(self.engine.pool.checkedout):
+                        if hasattr(self.engine.pool, "checkedout") and callable(self.engine.pool.checkedout):
                             pool_info["engine_pool_checked_out"] = self.engine.pool.checkedout()
-                        elif hasattr(self.engine.pool, 'checkedout'):
+                        elif hasattr(self.engine.pool, "checkedout"):
                             pool_info["engine_pool_checked_out"] = self.engine.pool.checkedout
                     except Exception:
                         # Pool info not available, skip it
@@ -101,8 +97,8 @@ class DatabaseManager:
 
                     return {
                         "status": "healthy",
-                        "database_url": self.database_url.split('@')[1] if '@' in self.database_url else "unknown",
-                        **pool_info
+                        "database_url": self.database_url.split("@")[1] if "@" in self.database_url else "unknown",
+                        **pool_info,
                     }
                 else:
                     return {"status": "unhealthy", "error": "Unexpected result from health check"}

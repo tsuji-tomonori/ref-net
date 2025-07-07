@@ -1,6 +1,6 @@
 """データベースモデルのテスト."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -27,13 +27,7 @@ def db_manager():
 def test_paper_creation(db_manager):
     """論文作成テスト."""
     with db_manager.get_session() as session:
-        paper = Paper(
-            paper_id="test-paper-1",
-            title="Test Paper",
-            abstract="Test abstract",
-            year=2023,
-            citation_count=10
-        )
+        paper = Paper(paper_id="test-paper-1", title="Test Paper", abstract="Test abstract", year=2023, citation_count=10)
         session.add(paper)
         session.commit()
 
@@ -48,32 +42,20 @@ def test_author_paper_relationship(db_manager):
     """著者と論文の関係テスト."""
     with db_manager.get_session() as session:
         # 論文作成
-        paper = Paper(
-            paper_id="test-paper-1",
-            title="Test Paper",
-            year=2023
-        )
+        paper = Paper(paper_id="test-paper-1", title="Test Paper", year=2023)
 
         # 著者作成
-        author = Author(
-            author_id="test-author-1",
-            name="Test Author"
-        )
+        author = Author(author_id="test-author-1", name="Test Author")
 
         session.add(paper)
         session.add(author)
         session.commit()
 
         # 関係設定（paper_authorsテーブルに直接挿入）
-        session.execute(text(
-            "INSERT INTO paper_authors (paper_id, author_id, position, created_at) "
-            "VALUES (:paper_id, :author_id, :position, :created_at)"
-        ), {
-            "paper_id": "test-paper-1",
-            "author_id": "test-author-1",
-            "position": 1,
-            "created_at": datetime.utcnow()
-        })
+        session.execute(
+            text("INSERT INTO paper_authors (paper_id, author_id, position, created_at) VALUES (:paper_id, :author_id, :position, :created_at)"),
+            {"paper_id": "test-paper-1", "author_id": "test-author-1", "position": 1, "created_at": datetime.now(timezone.utc)},
+        )
         session.commit()
 
         # 関係確認
@@ -90,12 +72,7 @@ def test_paper_relation_creation(db_manager):
         paper2 = Paper(paper_id="paper-2", title="Paper 2", year=2023)
 
         # 関係作成
-        relation = PaperRelation(
-            source_paper_id="paper-1",
-            target_paper_id="paper-2",
-            relation_type="citation",
-            hop_count=1
-        )
+        relation = PaperRelation(source_paper_id="paper-1", target_paper_id="paper-2", relation_type="citation", hop_count=1)
 
         session.add(paper1)
         session.add(paper2)
@@ -131,14 +108,7 @@ def test_table_stats(db_manager):
 def test_paper_schema_validation():
     """論文スキーマ検証テスト."""
     # 正常なデータ
-    valid_data = PaperCreate(
-        paper_id="test-paper",
-        title="Test Paper",
-        abstract="Test abstract",
-        year=2023,
-        citation_count=10,
-        language="en"
-    )
+    valid_data = PaperCreate(paper_id="test-paper", title="Test Paper", abstract="Test abstract", year=2023, citation_count=10, language="en")
     assert valid_data.paper_id == "test-paper"
 
     # 異常なデータ
@@ -148,7 +118,7 @@ def test_paper_schema_validation():
             title="",  # 空タイトル
             abstract="Test abstract",
             year=2023,
-            language="en"
+            language="en",
         )
 
 
@@ -156,8 +126,7 @@ def test_paper_update_schema():
     """論文更新スキーマテスト."""
     # PaperUpdateは全フィールドがオプショナル
     update_data = PaperUpdate(  # type: ignore[call-arg]
-        title="Updated Title",
-        citation_count=20
+        title="Updated Title", citation_count=20
     )
     assert update_data.title == "Updated Title"
     assert update_data.citation_count == 20
@@ -167,33 +136,16 @@ def test_paper_update_schema():
 def test_paper_schema_boundary_values():
     """論文スキーマ境界値テスト."""
     # 最小年度（1900年）
-    paper_min_year = PaperCreate(
-        paper_id="test-min-year",
-        title="Min Year Paper",
-        abstract="Test abstract",
-        year=1900,
-        language="en"
-    )
+    paper_min_year = PaperCreate(paper_id="test-min-year", title="Min Year Paper", abstract="Test abstract", year=1900, language="en")
     assert paper_min_year.year == 1900
 
     # 最大年度（2100年）
-    paper_max_year = PaperCreate(
-        paper_id="test-max-year",
-        title="Max Year Paper",
-        abstract="Test abstract",
-        year=2100,
-        language="en"
-    )
+    paper_max_year = PaperCreate(paper_id="test-max-year", title="Max Year Paper", abstract="Test abstract", year=2100, language="en")
     assert paper_max_year.year == 2100
 
     # 引用数0（最小値）
     paper_zero_citations = PaperCreate(
-        paper_id="test-zero-citations",
-        title="Zero Citations Paper",
-        abstract="Test abstract",
-        year=2023,
-        citation_count=0,
-        language="en"
+        paper_id="test-zero-citations", title="Zero Citations Paper", abstract="Test abstract", year=2023, citation_count=0, language="en"
     )
     assert paper_zero_citations.citation_count == 0
 
@@ -202,34 +154,15 @@ def test_paper_schema_invalid_data():
     """論文スキーマ無効データテスト."""
     # 負の引用数
     with pytest.raises(ValueError):
-        PaperCreate(
-            paper_id="test-invalid",
-            title="Invalid Paper",
-            abstract="Test abstract",
-            year=2023,
-            citation_count=-1,
-            language="en"
-        )
+        PaperCreate(paper_id="test-invalid", title="Invalid Paper", abstract="Test abstract", year=2023, citation_count=-1, language="en")
 
     # 範囲外の年度（1899年）
     with pytest.raises(ValueError):
-        PaperCreate(
-            paper_id="test-invalid-year-low",
-            title="Invalid Year Paper",
-            abstract="Test abstract",
-            year=1899,
-            language="en"
-        )
+        PaperCreate(paper_id="test-invalid-year-low", title="Invalid Year Paper", abstract="Test abstract", year=1899, language="en")
 
     # 範囲外の年度（2101年）
     with pytest.raises(ValueError):
-        PaperCreate(
-            paper_id="test-invalid-year-high",
-            title="Invalid Year Paper",
-            abstract="Test abstract",
-            year=2101,
-            language="en"
-        )
+        PaperCreate(paper_id="test-invalid-year-high", title="Invalid Year Paper", abstract="Test abstract", year=2101, language="en")
 
 
 def test_paper_database_constraints(db_manager):
@@ -269,7 +202,7 @@ def test_paper_relation_constraints(db_manager):
                 source_paper_id="paper-constraint-1",
                 target_paper_id="paper-constraint-1",  # 同じID
                 relation_type="citation",
-                hop_count=1
+                hop_count=1,
             )
             session.add(self_relation)
             session.commit()
@@ -292,7 +225,7 @@ def test_paper_external_id_constraints(db_manager):
             invalid_external_id = PaperExternalId(
                 paper_id="external-id-test",
                 id_type="INVALID_TYPE",  # 制約で許可されていない値
-                external_id="12345"
+                external_id="12345",
             )
             session.add(invalid_external_id)
             session.commit()
@@ -308,7 +241,7 @@ def test_author_constraints(db_manager):
             invalid_author = Author(
                 author_id="invalid-author",
                 name="Invalid Author",
-                paper_count=-1  # 制約違反
+                paper_count=-1,  # 制約違反
             )
             session.add(invalid_author)
             session.commit()
@@ -331,7 +264,7 @@ def test_processing_queue_constraints(db_manager):
             invalid_queue_item = ProcessingQueue(
                 paper_id="queue-test",
                 task_type="invalid_task",  # 制約で許可されていない値
-                status="pending"
+                status="pending",
             )
             session.add(invalid_queue_item)
             session.commit()
@@ -344,12 +277,7 @@ def test_large_text_fields(db_manager):
         large_title = "A" * 10000  # 10KB
         large_abstract = "B" * 100000  # 100KB
 
-        paper = Paper(
-            paper_id="large-text-test",
-            title=large_title,
-            abstract=large_abstract,
-            year=2023
-        )
+        paper = Paper(paper_id="large-text-test", title=large_title, abstract=large_abstract, year=2023)
         session.add(paper)
         session.commit()
 
@@ -372,23 +300,11 @@ def test_json_field_types(db_manager):
 
         # 複雑なJSONデータ
         complex_params = {
-            "config": {
-                "retries": 3,
-                "timeout": 30,
-                "options": ["verbose", "debug"]
-            },
-            "metadata": {
-                "created_by": "test",
-                "priority": "high"
-            }
+            "config": {"retries": 3, "timeout": 30, "options": ["verbose", "debug"]},
+            "metadata": {"created_by": "test", "priority": "high"},
         }
 
-        queue_item = ProcessingQueue(
-            paper_id="json-test",
-            task_type="crawl",
-            status="pending",
-            parameters=complex_params
-        )
+        queue_item = ProcessingQueue(paper_id="json-test", task_type="crawl", status="pending", parameters=complex_params)
         session.add(queue_item)
         session.commit()
 
@@ -403,8 +319,7 @@ def test_database_manager_init_table_creation(db_manager):
     # テーブルが作成されていることを確認
     stats = db_manager.get_table_stats()
     # database.pyで定義されているテーブルのみを確認
-    expected_tables = ["papers", "authors", "venues", "journals", "paper_relations",
-                      "processing_queue", "paper_authors", "paper_external_ids"]
+    expected_tables = ["papers", "authors", "venues", "journals", "paper_relations", "processing_queue", "paper_authors", "paper_external_ids"]
     for table in expected_tables:
         assert table in stats, f"Table {table} not found in {list(stats.keys())}"
 
@@ -616,6 +531,7 @@ def test_database_manager_session_database_error(monkeypatch):
 
 def test_database_manager_connection_pool_error(monkeypatch):
     """接続プールエラーテスト."""
+
     # エンジン作成を失敗させる
     def mock_create_engine(*args, **kwargs):
         raise Exception("Engine creation failed")

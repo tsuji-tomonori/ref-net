@@ -140,12 +140,8 @@ def migrate() -> None:
 
 
 @migrate.command()
-@click.argument('message')
-@click.option(
-    '--autogenerate/--no-autogenerate',
-    default=True,
-    help='Auto-generate migration from model changes'
-)
+@click.argument("message")
+@click.option("--autogenerate/--no-autogenerate", default=True, help="Auto-generate migration from model changes")
 def create_migration(message: str, autogenerate: bool) -> None:
     """新しいマイグレーション作成."""
     try:
@@ -157,8 +153,8 @@ def create_migration(message: str, autogenerate: bool) -> None:
 
 
 @migrate.command()
-@click.option('--revision', default='head', help='Target revision (default: head)')
-@click.option('--backup/--no-backup', default=True, help='Create backup before migration')
+@click.option("--revision", default="head", help="Target revision (default: head)")
+@click.option("--backup/--no-backup", default=True, help="Create backup before migration")
 def upgrade(revision: str, backup: bool) -> None:
     """マイグレーション実行."""
     try:
@@ -175,8 +171,8 @@ def upgrade(revision: str, backup: bool) -> None:
 
 
 @migrate.command()
-@click.argument('revision')
-@click.option('--confirm', is_flag=True, help='Confirm downgrade operation')
+@click.argument("revision")
+@click.option("--confirm", is_flag=True, help="Confirm downgrade operation")
 def downgrade(revision: str, confirm: bool) -> None:
     """マイグレーションのダウングレード."""
     if not confirm:
@@ -202,12 +198,12 @@ def status() -> None:
         click.echo(f"Available migrations: {validation['available_migrations']}")
         click.echo(f"Pending migrations: {validation['pending_migrations']}")
 
-        if validation['issues']:
+        if validation["issues"]:
             click.echo("\n⚠️  Issues:")
-            for issue in validation['issues']:
+            for issue in validation["issues"]:
                 click.echo(f"  - {issue}")
 
-        if validation['status'] != 'valid':
+        if validation["status"] != "valid":
             exit(1)
 
     except Exception as e:
@@ -227,7 +223,7 @@ def history() -> None:
 
         click.echo("Migration History:")
         for migration in history:
-            status = "→ CURRENT" if migration['is_current'] else ""
+            status = "→ CURRENT" if migration["is_current"] else ""
             click.echo(f"  {migration['revision_id']}: {migration['message']} {status}")
 
     except Exception as e:
@@ -236,7 +232,7 @@ def history() -> None:
 
 
 @migrate.command()
-@click.option('--confirm', is_flag=True, help='Confirm database reset')
+@click.option("--confirm", is_flag=True, help="Confirm database reset")
 def reset(confirm: bool) -> None:
     """データベースリセット（危険な操作）."""
     if not confirm:

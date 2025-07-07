@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # Paper スキーマ
 class PaperBase(BaseModel):
     """論文基底スキーマ."""
+
     title: str = Field(..., min_length=1, max_length=2000)
     abstract: str | None = Field(None, max_length=10000)
     year: int | None = Field(None, ge=1900, le=2100)
@@ -20,11 +21,13 @@ class PaperBase(BaseModel):
 
 class PaperCreate(PaperBase):
     """論文作成スキーマ."""
+
     paper_id: str = Field(..., min_length=1, max_length=255)
 
 
 class PaperUpdate(BaseModel):
     """論文更新スキーマ."""
+
     title: str | None = Field(None, min_length=1, max_length=2000)
     abstract: str | None = Field(None, max_length=10000)
     year: int | None = Field(None, ge=1900, le=2100)
@@ -33,13 +36,14 @@ class PaperUpdate(BaseModel):
     summary: str | None = Field(None, max_length=50000)
     pdf_url: str | None = Field(None, max_length=2048)
     pdf_hash: str | None = Field(None, max_length=64)
-    crawl_status: str | None = Field(None, pattern=r'^(pending|running|completed|failed)$')
-    pdf_status: str | None = Field(None, pattern=r'^(pending|running|completed|failed|unavailable)$')
-    summary_status: str | None = Field(None, pattern=r'^(pending|running|completed|failed)$')
+    crawl_status: str | None = Field(None, pattern=r"^(pending|running|completed|failed)$")
+    pdf_status: str | None = Field(None, pattern=r"^(pending|running|completed|failed|unavailable)$")
+    summary_status: str | None = Field(None, pattern=r"^(pending|running|completed|failed)$")
 
 
 class PaperResponse(PaperBase):
     """論文レスポンススキーマ."""
+
     paper_id: str
     crawl_status: str
     pdf_status: str
@@ -57,19 +61,22 @@ class PaperResponse(PaperBase):
 # Author スキーマ
 class AuthorBase(BaseModel):
     """著者基底スキーマ."""
+
     name: str = Field(..., min_length=1, max_length=500)
     affiliations: str | None = Field(None, max_length=2000)
     homepage_url: str | None = Field(None, max_length=2048)
-    orcid: str | None = Field(None, max_length=19, pattern=r'^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$')
+    orcid: str | None = Field(None, max_length=19, pattern=r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
 
 
 class AuthorCreate(AuthorBase):
     """著者作成スキーマ."""
+
     author_id: str = Field(..., min_length=1, max_length=255)
 
 
 class AuthorResponse(AuthorBase):
     """著者レスポンススキーマ."""
+
     author_id: str
     paper_count: int
     citation_count: int
@@ -81,9 +88,10 @@ class AuthorResponse(AuthorBase):
 # Relation スキーマ
 class PaperRelationCreate(BaseModel):
     """論文関係作成スキーマ."""
+
     source_paper_id: str = Field(..., min_length=1, max_length=255)
     target_paper_id: str = Field(..., min_length=1, max_length=255)
-    relation_type: str = Field(..., pattern=r'^(citation|reference)$')
+    relation_type: str = Field(..., pattern=r"^(citation|reference)$")
     hop_count: int = Field(default=1, ge=1)
     confidence_score: float | None = Field(None, ge=0.0, le=1.0)
     relevance_score: float | None = Field(None, ge=0.0, le=1.0)
@@ -91,6 +99,7 @@ class PaperRelationCreate(BaseModel):
 
 class PaperRelationResponse(BaseModel):
     """論文関係レスポンススキーマ."""
+
     id: int
     source_paper_id: str
     target_paper_id: str
@@ -106,14 +115,16 @@ class PaperRelationResponse(BaseModel):
 # Processing Queue スキーマ
 class ProcessingQueueCreate(BaseModel):
     """処理キュー作成スキーマ."""
+
     paper_id: str = Field(..., min_length=1, max_length=255)
-    task_type: str = Field(..., pattern=r'^(crawl|summarize|generate)$')
+    task_type: str = Field(..., pattern=r"^(crawl|summarize|generate)$")
     priority: int = Field(default=0, ge=0)
     parameters: dict[str, Any] | None = None
 
 
 class ProcessingQueueResponse(BaseModel):
     """処理キューレスポンススキーマ."""
+
     id: int
     paper_id: str
     task_type: str
@@ -135,6 +146,7 @@ class ProcessingQueueResponse(BaseModel):
 # Keyword スキーマ
 class PaperKeywordCreate(BaseModel):
     """キーワード作成スキーマ."""
+
     paper_id: str = Field(..., min_length=1, max_length=255)
     keyword: str = Field(..., min_length=1, max_length=200)
     relevance_score: float | None = Field(None, ge=0.0, le=1.0)
@@ -144,6 +156,7 @@ class PaperKeywordCreate(BaseModel):
 
 class PaperKeywordResponse(BaseModel):
     """キーワードレスポンススキーマ."""
+
     id: int
     paper_id: str
     keyword: str
@@ -158,13 +171,15 @@ class PaperKeywordResponse(BaseModel):
 # External ID スキーマ
 class PaperExternalIdCreate(BaseModel):
     """外部ID作成スキーマ."""
+
     paper_id: str = Field(..., min_length=1, max_length=255)
-    id_type: str = Field(..., pattern=r'^(DOI|ArXiv|PubMed|PMCID|MAG|DBLP|ACL)$')
+    id_type: str = Field(..., pattern=r"^(DOI|ArXiv|PubMed|PMCID|MAG|DBLP|ACL)$")
     external_id: str = Field(..., min_length=1, max_length=500)
 
 
 class PaperExternalIdResponse(BaseModel):
     """外部IDレスポンススキーマ."""
+
     id: int
     paper_id: str
     id_type: str
@@ -177,6 +192,7 @@ class PaperExternalIdResponse(BaseModel):
 # 統計情報スキーマ
 class DatabaseStats(BaseModel):
     """データベース統計スキーマ."""
+
     total_papers: int
     total_authors: int
     total_relations: int
@@ -189,6 +205,7 @@ class DatabaseStats(BaseModel):
 # 検索スキーマ
 class PaperSearchParams(BaseModel):
     """論文検索パラメータ."""
+
     query: str | None = None
     author: str | None = None
     year_start: int | None = Field(None, ge=1900)
@@ -205,6 +222,7 @@ class PaperSearchParams(BaseModel):
 
 class PaperSearchResponse(BaseModel):
     """論文検索レスポンス."""
+
     papers: list[PaperResponse]
     total_count: int
     has_more: bool
