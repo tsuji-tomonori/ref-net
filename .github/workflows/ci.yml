@@ -35,11 +35,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd package/shared && uv sync --dev
-        cd ../api && uv sync --dev
-        cd ../crawler && uv sync --dev
-        cd ../summarizer && uv sync --dev
-        cd ../generator && uv sync --dev
+        moon :install
 
     - name: Run pre-commit checks
       run: |
