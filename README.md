@@ -36,7 +36,6 @@
 |----------|-------------|------|
 | 📏 コーディング規約 | [基本規約](docs/development/coding-standards.md) | Python開発の基本ルールとベストプラクティス |
 | 🧪 テスト規約 | [テスト実装](docs/development/coding-test.md) | pytest実装規約とテスト戦略 |
-| ☁️ CDK規約 | [AWS CDK](docs/development/coding-cdk.md) | インフラストラクチャコード開発規約 |
 
 ### 仕様書
 
@@ -56,9 +55,3 @@
 | Phase 2 | [データベース](docs/tasks/phase_02/README.md) | モデル定義・マイグレーション |
 | Phase 3 | [サービス実装](docs/tasks/phase_03/README.md) | API・クローラー・要約・生成サービス |
 | Phase 4 | [運用基盤](docs/tasks/phase_04/README.md) | Docker・監視・セキュリティ・バッチ |
-
-### API仕様
-
-| カテゴリ | ドキュメント | 概要 |
-|----------|-------------|------|
-| 📚 Semantic Scholar | [Swagger仕様](docs/semantic_scholar/swagger.json) | 外部API連携仕様 |
