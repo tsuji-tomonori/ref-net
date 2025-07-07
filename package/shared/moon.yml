@@ -3,7 +3,6 @@ language: python
 
 tasks:
   install:
-    command: uv sync --group dev
     inputs:
       - "pyproject.toml"
       - "uv.lock"
