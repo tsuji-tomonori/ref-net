@@ -6,7 +6,6 @@ dependsOn:
 
 tasks:
   install:
-    command: uv sync
     inputs:
       - "pyproject.toml"
       - "uv.lock"
@@ -18,24 +17,24 @@ tasks:
     local: true
 
   lint:
-    command: uv run ruff check src/
+    command: uv run ruff check .
     inputs:
-      - "src/**/*.py"
+      - "**/*.py"
 
   format:
-    command: uv run ruff format src/
+    command: uv run ruff format .
     inputs:
-      - "src/**/*.py"
+      - "**/*.py"
 
   typecheck:
-    command: uv run mypy src/
+    command: uv run mypy .
     inputs:
-      - "src/**/*.py"
+      - "**/*.py"
 
   test:
-    command: uv run pytest tests/
+    command: uv run pytest tests/ -v
     inputs:
-      - "src/**/*.py"
+      - "**/*.py"
       - "tests/**/*.py"
 
   build:
