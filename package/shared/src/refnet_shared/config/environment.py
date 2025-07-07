@@ -101,7 +101,7 @@ class ConfigValidator:
         if not db.password:
             self.errors.append("DATABASE__PASSWORD is required")
 
-        if self.settings.is_production():
+        if self.settings.is_production() and db.password:
             if db.password == "refnet" or "test" in db.password.lower():
                 self.errors.append("Production database password is too weak")
 

@@ -170,6 +170,7 @@ def test_paper_schema_boundary_values():
     paper_min_year = PaperCreate(
         paper_id="test-min-year",
         title="Min Year Paper",
+        abstract="Test abstract",
         year=1900,
         language="en"
     )
@@ -179,6 +180,7 @@ def test_paper_schema_boundary_values():
     paper_max_year = PaperCreate(
         paper_id="test-max-year",
         title="Max Year Paper",
+        abstract="Test abstract",
         year=2100,
         language="en"
     )
@@ -188,6 +190,8 @@ def test_paper_schema_boundary_values():
     paper_zero_citations = PaperCreate(
         paper_id="test-zero-citations",
         title="Zero Citations Paper",
+        abstract="Test abstract",
+        year=2023,
         citation_count=0,
         language="en"
     )
@@ -201,6 +205,8 @@ def test_paper_schema_invalid_data():
         PaperCreate(
             paper_id="test-invalid",
             title="Invalid Paper",
+            abstract="Test abstract",
+            year=2023,
             citation_count=-1,
             language="en"
         )
@@ -210,6 +216,7 @@ def test_paper_schema_invalid_data():
         PaperCreate(
             paper_id="test-invalid-year-low",
             title="Invalid Year Paper",
+            abstract="Test abstract",
             year=1899,
             language="en"
         )
@@ -219,6 +226,7 @@ def test_paper_schema_invalid_data():
         PaperCreate(
             paper_id="test-invalid-year-high",
             title="Invalid Year Paper",
+            abstract="Test abstract",
             year=2101,
             language="en"
         )

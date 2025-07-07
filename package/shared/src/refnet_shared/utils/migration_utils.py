@@ -209,7 +209,8 @@ class MigrationManager:
             ]
 
             env = os.environ.copy()
-            env["PGPASSWORD"] = self.settings.database.password
+            if self.settings.database.password:
+                env["PGPASSWORD"] = self.settings.database.password
 
             result = subprocess.run(cmd, env=env, capture_output=True, text=True)
 

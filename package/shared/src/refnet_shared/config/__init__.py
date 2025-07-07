@@ -9,15 +9,17 @@ from pydantic_settings import BaseSettings
 class DatabaseConfig(BaseModel):
     """データベース設定."""
 
-    host: str = "localhost"
+    host: str | None = "localhost"
     port: int = 5432
     database: str = "refnet"
-    username: str = "refnet"
-    password: str = "refnet"
+    username: str | None = "refnet"
+    password: str | None = "refnet"
 
     @property
     def url(self) -> str:
         """SQLAlchemy接続URL."""
+        if not self.host or not self.username or not self.password:
+            raise ValueError("Database configuration is incomplete")
         return (
             f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
         )

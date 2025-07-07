@@ -78,7 +78,7 @@ def get_app_info() -> dict[str, Any]:
         "name": settings.app_name,
         "version": settings.version,
         "debug": settings.debug,
-        "database_url": settings.database.url.replace(settings.database.password, "***"),
+        "database_url": settings.database.url.replace(settings.database.password or "", "***"),
         "redis_url": settings.redis.url,
         "logging_level": settings.logging.level,
     }

@@ -304,8 +304,6 @@ def test_reset_database_upgrade_error(test_migration_manager, monkeypatch):
     from refnet_shared.exceptions import DatabaseError
 
     # downgradeは成功するがupgradeを失敗させる
-    original_downgrade = test_migration_manager.downgrade
-
     def mock_downgrade(*args, **kwargs):
         # 最初のdowngradeは成功
         pass
