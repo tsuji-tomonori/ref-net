@@ -6,7 +6,6 @@ dependsOn:
 
 tasks:
   install:
-    command: sync --group dev
     inputs:
       - "pyproject.toml"
       - "uv.lock"
