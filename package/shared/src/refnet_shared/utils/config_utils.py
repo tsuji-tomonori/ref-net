@@ -13,9 +13,7 @@ def get_env_file_path(environment: Environment) -> Path:
     return Path(f".env.{environment.value}")
 
 
-def create_env_file_from_template(
-    environment: Environment, overrides: dict[str, Any] | None = None
-) -> None:
+def create_env_file_from_template(environment: Environment, overrides: dict[str, Any] | None = None) -> None:
     """テンプレートから環境ファイル作成."""
     template_path = Path(".env.example")
     env_path = get_env_file_path(environment)
@@ -29,16 +27,16 @@ def create_env_file_from_template(
 
     # 環境固有の値を設定
     if overrides:
-        lines = content.split('\n')
+        lines = content.split("\n")
         for i, line in enumerate(lines):
-            if '=' in line and not line.strip().startswith('#'):
-                key = line.split('=')[0].strip()
+            if "=" in line and not line.strip().startswith("#"):
+                key = line.split("=")[0].strip()
                 if key in overrides:
                     lines[i] = f"{key}={overrides[key]}"
-        content = '\n'.join(lines)
+        content = "\n".join(lines)
 
     # ファイル作成
-    with open(env_path, 'w') as f:
+    with open(env_path, "w") as f:
         f.write(content)
 
 
@@ -74,7 +72,7 @@ def export_settings_to_json(settings: EnvironmentSettings, output_path: Path) ->
         "output_dir": settings.output_dir,
     }
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(safe_settings, f, indent=2)
 
 

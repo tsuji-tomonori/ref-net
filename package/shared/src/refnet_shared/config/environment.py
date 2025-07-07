@@ -101,7 +101,7 @@ class ConfigValidator:
         if not db.password:
             self.errors.append("DATABASE__PASSWORD is required")
 
-        if self.settings.is_production():
+        if self.settings.is_production() and db.password:
             if db.password == "refnet" or "test" in db.password.lower():
                 self.errors.append("Production database password is too weak")
 
@@ -126,9 +126,7 @@ class ConfigValidator:
                 self.warnings.append("SEMANTIC_SCHOLAR_API_KEY not set (rate limiting may apply)")
 
             if not self.settings.openai_api_key and not self.settings.anthropic_api_key:
-                self.errors.append(
-                    "Either OPENAI_API_KEY or ANTHROPIC_API_KEY must be set in production"
-                )
+                self.errors.append("Either OPENAI_API_KEY or ANTHROPIC_API_KEY must be set in production")
 
     def _validate_logging(self) -> None:
         """ログ設定検証."""

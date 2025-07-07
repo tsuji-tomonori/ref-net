@@ -34,9 +34,7 @@ def test_validate_required_settings_production_fail(monkeypatch):
     """本番環境設定検証失敗テスト."""
     # 本番環境でデフォルトのシークレットを使用
     monkeypatch.setattr("refnet_shared.config.settings.debug", False)
-    monkeypatch.setattr(
-        "refnet_shared.config.settings.security.jwt_secret", "development-secret-key"
-    )
+    monkeypatch.setattr("refnet_shared.config.settings.security.jwt_secret", "development-secret-key")
 
     with pytest.raises(ValueError) as exc_info:
         validate_required_settings()

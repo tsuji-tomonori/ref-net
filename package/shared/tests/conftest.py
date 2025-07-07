@@ -9,6 +9,7 @@ from refnet_shared.config import Settings
 def test_settings() -> Settings:
     """テスト用設定."""
     import os
+
     # 環境変数を直接設定
     os.environ["DEBUG"] = "true"
     os.environ["DATABASE__HOST"] = "localhost"
