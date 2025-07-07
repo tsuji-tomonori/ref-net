@@ -11,22 +11,22 @@ tasks:
       - "uv.lock"
 
   lint:
-    command: .venv/bin/ruff check .
+    command: uv run ruff check .
     inputs:
       - "**/*.py"
 
   format:
-    command: .venv/bin/ruff format .
+    command: uv run ruff format .
     inputs:
       - "**/*.py"
 
   typecheck:
-    command: .venv/bin/mypy .
+    command: uv run mypy .
     inputs:
       - "**/*.py"
 
   test:
-    command: .venv/bin/pytest tests/ -v
+    command: uv run pytest tests/ -v
     inputs:
       - "**/*.py"
       - "tests/**/*.py"
