@@ -16,7 +16,7 @@ dependencies = [
     "click>=8.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=8.4.1",
     "pytest-cov>=6.0.0",
