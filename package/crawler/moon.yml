@@ -6,30 +6,51 @@ dependsOn:
 
 tasks:
   install:
+    command: uv sync
     inputs:
       - "pyproject.toml"
       - "uv.lock"
 
-  lint:
-    command: uv run ruff check .
+  worker:
+    command: celery -A refnet_crawler.tasks.celery_app worker --loglevel=info --queue=crawl
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
+    local: true
+
+  beat:
+    command: celery -A refnet_crawler.tasks.celery_app beat --loglevel=info
+    inputs:
+      - "src/**/*.py"
+    local: true
+
+  lint:
+    command: ruff check src/
+    inputs:
+      - "src/**/*.py"
 
   format:
-    command: uv run ruff format .
+    command: ruff format src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   typecheck:
-    command: uv run mypy .
+    command: mypy src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   test:
-    command: uv run pytest tests/ -v
+    command: pytest tests/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
       - "tests/**/*.py"
+
+  build:
+    command: docker build -t refnet-crawler .
+    inputs:
+      - "src/**/*.py"
+      - "Dockerfile"
+    outputs:
+      - "dist/"
 
   check:
     deps:
