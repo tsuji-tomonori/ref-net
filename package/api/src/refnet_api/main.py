@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> None:
     """アプリケーションライフサイクル管理."""
     logger.info("Starting RefNet API", environment=settings.environment.value)
     yield
@@ -48,13 +48,13 @@ app.include_router(queue.router, prefix="/api/v1/queue", tags=["queue"])
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """ルートエンドポイント."""
     return {"message": "RefNet API", "version": "0.1.0", "environment": settings.environment.value}
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """ヘルスチェック."""
     return {"status": "healthy"}
 

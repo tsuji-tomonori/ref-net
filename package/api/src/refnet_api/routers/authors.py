@@ -18,14 +18,14 @@ async def get_authors(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
-):
+) -> list[Author]:
     """著者一覧取得."""
     authors = db.query(Author).offset(skip).limit(limit).all()
     return authors
 
 
 @router.get("/{author_id}", response_model=AuthorResponse)
-async def get_author(author_id: str, db: Session = Depends(get_db)):
+async def get_author(author_id: str, db: Session = Depends(get_db)) -> Author:
     """著者詳細取得."""
     author = db.query(Author).filter(Author.author_id == author_id).first()
     if not author:
@@ -34,7 +34,7 @@ async def get_author(author_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{author_id}/papers")
-async def get_author_papers(author_id: str, db: Session = Depends(get_db)):
+async def get_author_papers(author_id: str, db: Session = Depends(get_db)) -> dict[str, list]:
     """著者の論文一覧取得."""
     author = db.query(Author).filter(Author.author_id == author_id).first()
     if not author:

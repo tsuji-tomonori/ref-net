@@ -15,17 +15,17 @@ class TestPaperService:
     """論文サービステスト."""
 
     @pytest.fixture
-    def mock_db(self):
+    def mock_db(self) -> Mock:
         """モックデータベース."""
         return Mock(spec=Session)
 
     @pytest.fixture
-    def paper_service(self, mock_db):
+    def paper_service(self, mock_db: Mock) -> PaperService:
         """論文サービス."""
         with patch('refnet_api.services.paper_service.CeleryService'):
             return PaperService(mock_db)
 
-    def test_get_papers(self, paper_service, mock_db):
+    def test_get_papers(self, paper_service: PaperService, mock_db: Mock) -> None:
         """論文一覧取得テスト."""
         # モック設定
         mock_papers = [Mock(spec=Paper), Mock(spec=Paper)]
@@ -40,7 +40,7 @@ class TestPaperService:
         assert result == mock_papers
         mock_db.query.assert_called_once_with(Paper)
 
-    def test_get_paper(self, paper_service, mock_db):
+    def test_get_paper(self, paper_service: PaperService, mock_db: Mock) -> None:
         """論文取得テスト."""
         # モック設定
         mock_paper = Mock(spec=Paper)
@@ -53,7 +53,7 @@ class TestPaperService:
         assert result == mock_paper
         mock_db.query.assert_called_once_with(Paper)
 
-    def test_create_paper(self, paper_service, mock_db):
+    def test_create_paper(self, paper_service: PaperService, mock_db: Mock) -> None:
         """論文作成テスト."""
         # テストデータ
         paper_data = PaperCreate(
@@ -79,7 +79,7 @@ class TestCeleryService:
     """Celeryサービステスト."""
 
     @pytest.fixture
-    def celery_service(self):
+    def celery_service(self) -> CeleryService:
         """Celeryサービス."""
         with patch('refnet_api.services.celery_service.Celery') as MockCelery:
             mock_app = Mock()
@@ -88,7 +88,7 @@ class TestCeleryService:
             service.celery_app = mock_app
             return service
 
-    def test_queue_crawl_task(self, celery_service):
+    def test_queue_crawl_task(self, celery_service: CeleryService) -> None:
         """クローリングタスクキューテスト."""
         # モック設定
         mock_task = Mock()
@@ -106,7 +106,7 @@ class TestCeleryService:
             queue="crawl"
         )
 
-    def test_get_task_status(self, celery_service):
+    def test_get_task_status(self, celery_service: CeleryService) -> None:
         """タスク状態取得テスト."""
         # モック設定
         mock_task = Mock()

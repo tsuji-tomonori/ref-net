@@ -15,7 +15,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def override_get_db():
+def override_get_db() -> None:
     """テスト用DB依存関係."""
     try:
         db = TestingSessionLocal()
@@ -28,7 +28,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture
-def client():
+def client() -> TestClient:
     """テストクライアント."""
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as c:
@@ -36,7 +36,7 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_create_paper(client):
+def test_create_paper(client: TestClient) -> None:
     """論文作成テスト."""
     paper_data = {
         "paper_id": "test-paper-1",
@@ -54,7 +54,7 @@ def test_create_paper(client):
     assert data["title"] == "Test Paper"
 
 
-def test_get_paper(client):
+def test_get_paper(client: TestClient) -> None:
     """論文取得テスト."""
     # 論文作成
     paper_data = {
@@ -73,13 +73,13 @@ def test_get_paper(client):
     assert data["title"] == "Test Paper 2"
 
 
-def test_get_paper_not_found(client):
+def test_get_paper_not_found(client: TestClient) -> None:
     """論文取得（存在しない）テスト."""
     response = client.get("/api/v1/papers/nonexistent")
     assert response.status_code == 404
 
 
-def test_health_check(client):
+def test_health_check(client: TestClient) -> None:
     """ヘルスチェックテスト."""
     response = client.get("/health")
     assert response.status_code == 200

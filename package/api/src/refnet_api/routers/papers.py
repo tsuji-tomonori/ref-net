@@ -18,7 +18,7 @@ async def get_papers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
-):
+) -> list:
     """論文一覧取得."""
     service = PaperService(db)
     papers = service.get_papers(skip=skip, limit=limit)
@@ -26,7 +26,7 @@ async def get_papers(
 
 
 @router.get("/{paper_id}", response_model=PaperResponse)
-async def get_paper(paper_id: str, db: Session = Depends(get_db)):
+async def get_paper(paper_id: str, db: Session = Depends(get_db)) -> object:
     """論文詳細取得."""
     service = PaperService(db)
     paper = service.get_paper(paper_id)
@@ -36,7 +36,7 @@ async def get_paper(paper_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=PaperResponse)
-async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)):
+async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> object:
     """論文作成."""
     service = PaperService(db)
 
@@ -50,7 +50,9 @@ async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{paper_id}", response_model=PaperResponse)
-async def update_paper(paper_id: str, paper_update: PaperUpdate, db: Session = Depends(get_db)):
+async def update_paper(
+    paper_id: str, paper_update: PaperUpdate, db: Session = Depends(get_db)
+) -> object:
     """論文更新."""
     service = PaperService(db)
 
@@ -64,7 +66,7 @@ async def update_paper(paper_id: str, paper_update: PaperUpdate, db: Session = D
 
 
 @router.post("/{paper_id}/process")
-async def process_paper(paper_id: str, db: Session = Depends(get_db)):
+async def process_paper(paper_id: str, db: Session = Depends(get_db)) -> dict[str, str]:
     """論文処理開始."""
     service = PaperService(db)
 
@@ -80,7 +82,7 @@ async def process_paper(paper_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{paper_id}/status")
-async def get_paper_status(paper_id: str, db: Session = Depends(get_db)):
+async def get_paper_status(paper_id: str, db: Session = Depends(get_db)) -> dict[str, str]:
     """論文処理状態取得."""
     service = PaperService(db)
 
@@ -99,7 +101,7 @@ async def get_paper_status(paper_id: str, db: Session = Depends(get_db)):
 @router.get("/{paper_id}/relations")
 async def get_paper_relations(
     paper_id: str, relation_type: str | None = Query(None), db: Session = Depends(get_db)
-):
+) -> dict:
     """論文関係取得."""
     service = PaperService(db)
 
