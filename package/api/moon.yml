@@ -6,30 +6,45 @@ dependsOn:
 
 tasks:
   install:
+    command: uv sync
     inputs:
       - "pyproject.toml"
       - "uv.lock"
 
-  lint:
-    command: uv run ruff check .
+  dev:
+    command: uv run uvicorn refnet_api.main:app --reload --host 0.0.0.0 --port 8000
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
+    local: true
+
+  lint:
+    command: uv run ruff check src/
+    inputs:
+      - "src/**/*.py"
 
   format:
-    command: uv run ruff format .
+    command: uv run ruff format src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   typecheck:
-    command: uv run mypy .
+    command: uv run mypy src/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
 
   test:
-    command: uv run pytest tests/ -v
+    command: uv run pytest tests/
     inputs:
-      - "**/*.py"
+      - "src/**/*.py"
       - "tests/**/*.py"
+
+  build:
+    command: docker build -t refnet-api .
+    inputs:
+      - "src/**/*.py"
+      - "Dockerfile"
+    outputs:
+      - "dist/"
 
   check:
     deps:
