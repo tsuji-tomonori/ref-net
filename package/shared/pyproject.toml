@@ -32,7 +32,7 @@ build-backend = "hatchling.build"
 refnet-shared = "refnet_shared.cli:main"
 
 [tool.ruff]
-line-length = 150
+line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
