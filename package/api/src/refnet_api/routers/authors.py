@@ -40,4 +40,4 @@ async def get_author_papers(author_id: str, db: Session = Depends(get_db)):
     if not author:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
 
-    return {"papers": [paper for paper in author.papers]}
+    return {"papers": list(author.papers)}

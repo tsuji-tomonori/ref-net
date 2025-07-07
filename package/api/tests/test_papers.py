@@ -2,12 +2,12 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from refnet_shared.models.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from refnet_shared.models.database import Base
-from refnet_api.main import app
-from refnet_api.dependencies import get_db
 
+from refnet_api.dependencies import get_db
+from refnet_api.main import app
 
 # テスト用データベース
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"

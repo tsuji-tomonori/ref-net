@@ -1,12 +1,14 @@
 """サービスクラスのテスト."""
 
-import pytest
 from unittest.mock import Mock, patch
-from sqlalchemy.orm import Session
-from refnet_api.services.paper_service import PaperService
-from refnet_api.services.celery_service import CeleryService
+
+import pytest
 from refnet_shared.models.database import Paper
-from refnet_shared.models.schemas import PaperCreate, PaperUpdate
+from refnet_shared.models.schemas import PaperCreate
+from sqlalchemy.orm import Session
+
+from refnet_api.services.celery_service import CeleryService
+from refnet_api.services.paper_service import PaperService
 
 
 class TestPaperService:
@@ -27,7 +29,9 @@ class TestPaperService:
         """論文一覧取得テスト."""
         # モック設定
         mock_papers = [Mock(spec=Paper), Mock(spec=Paper)]
-        mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value = mock_papers
+        mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value = (
+            mock_papers
+        )
 
         # テスト実行
         result = paper_service.get_papers(skip=0, limit=10)
@@ -59,7 +63,7 @@ class TestPaperService:
         )
 
         # テスト実行
-        result = paper_service.create_paper(paper_data)
+        paper_service.create_paper(paper_data)
 
         # 検証 - 実際のPaperインスタンスが作成されることを確認
         mock_db.add.assert_called_once()
