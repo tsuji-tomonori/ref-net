@@ -1,10 +1,12 @@
 """論文エンドポイントのテスト."""
 
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from refnet_shared.models.database import Base
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from refnet_api.dependencies import get_db
 from refnet_api.main import app
@@ -15,7 +17,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def override_get_db() -> None:
+def override_get_db() -> Generator[Session, None, None]:
     """テスト用DB依存関係."""
     try:
         db = TestingSessionLocal()
@@ -28,7 +30,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client() -> Generator[TestClient, None, None]:
     """テストクライアント."""
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as c:

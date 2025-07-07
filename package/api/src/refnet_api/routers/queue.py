@@ -1,5 +1,7 @@
 """キュー管理エンドポイント."""
 
+from typing import Any
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from refnet_shared.models.database import ProcessingQueue
@@ -18,7 +20,7 @@ async def get_queue_status(
     limit: int = Query(100, ge=1, le=1000),
     status_filter: str = Query(None),
     db: Session = Depends(get_db),
-) -> list:
+) -> list[Any]:
     """処理キュー状態取得."""
     query = db.query(ProcessingQueue)
 
@@ -30,7 +32,7 @@ async def get_queue_status(
 
 
 @router.get("/tasks/{task_id}")
-async def get_task_status(task_id: str) -> dict:
+async def get_task_status(task_id: str) -> dict[str, Any]:
     """タスク状態取得."""
     celery_service = CeleryService()
     status_info = celery_service.get_task_status(task_id)
@@ -38,7 +40,7 @@ async def get_task_status(task_id: str) -> dict:
 
 
 @router.get("/papers/{paper_id}/queue")
-async def get_paper_queue_status(paper_id: str, db: Session = Depends(get_db)) -> list:
+async def get_paper_queue_status(paper_id: str, db: Session = Depends(get_db)) -> list[Any]:
     """論文の処理キュー状態取得."""
     queue_items = db.query(ProcessingQueue).filter(ProcessingQueue.paper_id == paper_id).all()
 

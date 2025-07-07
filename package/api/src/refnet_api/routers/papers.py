@@ -1,6 +1,8 @@
 """論文関連エンドポイント."""
 
 
+from typing import Any
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from refnet_shared.models.schemas import PaperCreate, PaperResponse, PaperUpdate
@@ -18,7 +20,7 @@ async def get_papers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
-) -> list:
+) -> list[Any]:
     """論文一覧取得."""
     service = PaperService(db)
     papers = service.get_papers(skip=skip, limit=limit)
@@ -26,7 +28,7 @@ async def get_papers(
 
 
 @router.get("/{paper_id}", response_model=PaperResponse)
-async def get_paper(paper_id: str, db: Session = Depends(get_db)) -> object:
+async def get_paper(paper_id: str, db: Session = Depends(get_db)) -> Any:
     """論文詳細取得."""
     service = PaperService(db)
     paper = service.get_paper(paper_id)
@@ -36,7 +38,7 @@ async def get_paper(paper_id: str, db: Session = Depends(get_db)) -> object:
 
 
 @router.post("/", response_model=PaperResponse)
-async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> object:
+async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> Any:
     """論文作成."""
     service = PaperService(db)
 
@@ -52,7 +54,7 @@ async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> obj
 @router.put("/{paper_id}", response_model=PaperResponse)
 async def update_paper(
     paper_id: str, paper_update: PaperUpdate, db: Session = Depends(get_db)
-) -> object:
+) -> Any:
     """論文更新."""
     service = PaperService(db)
 
@@ -101,7 +103,7 @@ async def get_paper_status(paper_id: str, db: Session = Depends(get_db)) -> dict
 @router.get("/{paper_id}/relations")
 async def get_paper_relations(
     paper_id: str, relation_type: str | None = Query(None), db: Session = Depends(get_db)
-) -> dict:
+) -> dict[str, Any]:
     """論文関係取得."""
     service = PaperService(db)
 
@@ -110,4 +112,4 @@ async def get_paper_relations(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
 
     relations = service.get_paper_relations(paper_id, relation_type)
-    return relations
+    return {"relations": relations}

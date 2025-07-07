@@ -1,5 +1,6 @@
 """RefNet APIメインアプリケーション."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
@@ -17,7 +18,7 @@ logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> None:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """アプリケーションライフサイクル管理."""
     logger.info("Starting RefNet API", environment=settings.environment.value)
     yield
