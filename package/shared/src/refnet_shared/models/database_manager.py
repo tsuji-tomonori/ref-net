@@ -119,7 +119,7 @@ class DatabaseManager:
                 for table_name in Base.metadata.tables.keys():
                     try:
                         count = session.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
-                        stats[table_name] = count
+                        stats[table_name] = count or 0
                     except Exception as e:
                         logger.warning(f"Failed to get count for table {table_name}", error=str(e))
                         stats[table_name] = -1

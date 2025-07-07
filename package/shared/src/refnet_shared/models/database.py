@@ -19,7 +19,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # メタデータとベースクラス
 metadata = MetaData(
@@ -32,18 +32,31 @@ metadata = MetaData(
     }
 )
 
-Base = declarative_base(metadata=metadata)
+
+class Base(DeclarativeBase):
+    """SQLAlchemyベースクラス."""
+    metadata = metadata
 
 
 # Cross-database JSON type
 def get_json_type() -> type:
-    """データベースに応じたJSON型を返す."""
-    try:
-        # 実行時にエンジンからデータベースタイプを判定
-        # テスト時はJSONを使用、本番ではJSONBを使用
-        return JSON
-    except Exception:
-        return JSON
+    """データベースに応じたJSON型を返す.
+
+    PostgreSQLの場合はJSONB、その他（SQLite等）の場合はJSONを使用。
+    環境変数DATABASE_URLから判定する。
+    """
+    import os
+
+    from sqlalchemy.dialects.postgresql import JSONB
+
+    database_url = os.environ.get("DATABASE_URL", "")
+
+    # PostgreSQLの場合はJSONBを使用
+    if database_url.startswith("postgresql://") or database_url.startswith("postgres://"):
+        return JSONB
+
+    # その他のデータベース（SQLite等）の場合はJSONを使用
+    return JSON
 
 
 # 多対多関係のためのアソシエーションテーブル
@@ -410,7 +423,7 @@ class ProcessingQueue(Base):
     execution_time_seconds: Mapped[float | None] = mapped_column(Float)
 
     # 処理パラメータ（JSON形式）
-    parameters: Mapped[dict | None] = mapped_column(JSON)
+    parameters: Mapped[dict | None] = mapped_column(get_json_type())
 
     # タイムスタンプ
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

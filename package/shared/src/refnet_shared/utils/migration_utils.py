@@ -56,7 +56,7 @@ class MigrationManager:
             revision_id = script_dir.get_current_head()
 
             logger.info(f"Migration created with revision ID: {revision_id}")
-            return revision_id
+            return revision_id or ""
 
         except Exception as e:
             logger.error(f"Failed to create migration: {e}")
@@ -118,7 +118,7 @@ class MigrationManager:
 
     def validate_migrations(self) -> dict[str, Any]:
         """マイグレーション検証."""
-        result = {
+        result: dict[str, Any] = {
             "status": "valid",
             "current_revision": None,
             "available_migrations": 0,
@@ -145,17 +145,23 @@ class MigrationManager:
                     for revision in script_dir.iterate_revisions(head, current):
                         pending.append(revision.revision)
                     result["pending_migrations"] = len(pending)
-                    result["issues"].append(f"Pending migrations: {', '.join(pending)}")
+                    issues_list = result["issues"]
+                    if isinstance(issues_list, list):
+                        issues_list.append(f"Pending migrations: {', '.join(pending)}")
             else:
                 result["pending_migrations"] = len(all_revisions)
-                result["issues"].append("Database has no migration history")
+                issues_list = result["issues"]
+                if isinstance(issues_list, list):
+                    issues_list.append("Database has no migration history")
 
             if result["issues"]:
                 result["status"] = "issues_found"
 
         except Exception as e:
             result["status"] = "error"
-            result["issues"].append(str(e))
+            issues_list = result["issues"]
+            if isinstance(issues_list, list):
+                issues_list.append(str(e))
             logger.error(f"Migration validation failed: {e}")
 
         return result
