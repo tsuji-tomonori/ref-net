@@ -5,7 +5,9 @@ from typing import Any
 
 import structlog
 from celery import Celery  # type: ignore[import-untyped]
-from refnet_shared.config.environment import load_environment_settings  # type: ignore[import-untyped]
+from refnet_shared.config.environment import (
+    load_environment_settings,  # type: ignore[import-untyped]
+)
 
 from refnet_summarizer.services.summarizer_service import SummarizerService
 
