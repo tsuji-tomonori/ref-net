@@ -88,7 +88,8 @@ async def test_download_pdf_exception(processor):  # type: ignore
 async def test_download_pdf_http_error(processor):  # type: ignore
     """PDF ダウンロードHTTPエラーテスト."""
     with patch.object(processor.client, 'get') as mock_get:
-        mock_response = AsyncMock()
+        # 完全に同期的なモックレスポンスを使用
+        mock_response = MagicMock()
         # raise_for_statusで例外を投げる同期的モック
         def mock_raise_for_status():
             raise Exception("HTTP 404")
