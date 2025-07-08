@@ -1,10 +1,10 @@
 """要約サービス."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import structlog
-from refnet_shared.models.database import Paper, ProcessingQueue
-from refnet_shared.models.database_manager import db_manager
+from refnet_shared.models.database import Paper, ProcessingQueue  # type: ignore[import-untyped]
+from refnet_shared.models.database_manager import db_manager  # type: ignore[import-untyped]
 from sqlalchemy.orm import Session
 
 from refnet_summarizer.clients.ai_client import create_ai_client
@@ -83,7 +83,7 @@ class SummarizerService:
                 # 論文情報の更新
                 paper.summary = summary
                 paper.summary_model = self._get_ai_model_name()
-                paper.summary_created_at = datetime.utcnow()
+                paper.summary_created_at = datetime.now(UTC)
                 paper.summary_status = "completed"
 
                 # TODO: キーワードの保存（キーワードテーブルがある場合）

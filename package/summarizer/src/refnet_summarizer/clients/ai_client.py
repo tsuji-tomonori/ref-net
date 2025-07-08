@@ -8,8 +8,8 @@ from pathlib import Path
 import anthropic
 import openai
 import structlog
-from refnet_shared.config.environment import load_environment_settings
-from refnet_shared.exceptions import ExternalAPIError
+from refnet_shared.config.environment import load_environment_settings  # type: ignore
+from refnet_shared.exceptions import ExternalAPIError  # type: ignore
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = structlog.get_logger(__name__)
@@ -161,7 +161,12 @@ class AnthropicClient(AIClient):
                 ],
             )
 
-            summary = response.content[0].text
+            # Anthropicのレスポンスから適切にテキストを取得
+            content_block = response.content[0]
+            if hasattr(content_block, 'text'):
+                summary = content_block.text
+            else:
+                raise ExternalAPIError("Invalid response format from Anthropic")
             if not summary:
                 raise ExternalAPIError("Empty response from Anthropic")
 
@@ -205,7 +210,12 @@ class AnthropicClient(AIClient):
                 ],
             )
 
-            keywords_text = response.content[0].text
+            # Anthropicのレスポンスから適切にテキストを取得
+            content_block = response.content[0]
+            if hasattr(content_block, 'text'):
+                keywords_text = content_block.text
+            else:
+                keywords_text = ""
             if not keywords_text:
                 return []
 

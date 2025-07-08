@@ -1,10 +1,11 @@
 """Celeryタスク定義."""
 
 import asyncio
+from typing import Any
 
 import structlog
-from celery import Celery
-from refnet_shared.config.environment import load_environment_settings
+from celery import Celery  # type: ignore[import-untyped]
+from refnet_shared.config.environment import load_environment_settings  # type: ignore
 
 from refnet_summarizer.services.summarizer_service import SummarizerService
 
@@ -34,12 +35,12 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True, name="refnet.summarizer.summarize_paper")
-def summarize_paper_task(self, paper_id: str) -> bool:
+@celery_app.task(bind=True, name="refnet.summarizer.summarize_paper")  # type: ignore[misc]
+def summarize_paper_task(self: Any, paper_id: str) -> bool:
     """論文要約タスク."""
     logger.info("Starting paper summarization task", paper_id=paper_id)
 
-    async def _summarize():
+    async def _summarize() -> bool:
         service = SummarizerService()
         try:
             return await service.summarize_paper(paper_id)
@@ -47,7 +48,7 @@ def summarize_paper_task(self, paper_id: str) -> bool:
             await service.close()
 
     try:
-        result = asyncio.run(_summarize())
+        result: bool = asyncio.run(_summarize())
         logger.info("Paper summarization task completed", paper_id=paper_id, success=result)
         return result
     except Exception as e:
@@ -55,12 +56,12 @@ def summarize_paper_task(self, paper_id: str) -> bool:
         raise self.retry(exc=e, countdown=300, max_retries=2) from e  # 5分後にリトライ
 
 
-@celery_app.task(name="refnet.summarizer.batch_summarize")
-def batch_summarize_task(paper_ids: list[str]) -> dict:
+@celery_app.task(name="refnet.summarizer.batch_summarize")  # type: ignore[misc]
+def batch_summarize_task(paper_ids: list[str]) -> dict[str, str]:
     """バッチ要約タスク."""
     logger.info("Starting batch summarization task", paper_count=len(paper_ids))
 
-    results = {}
+    results: dict[str, str] = {}
     for paper_id in paper_ids:
         # 個別タスクとして実行
         result = summarize_paper_task.delay(paper_id)
