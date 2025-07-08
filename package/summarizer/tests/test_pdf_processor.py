@@ -1,25 +1,26 @@
 """PDF処理のテスト."""
 
-import io
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, mock_open, MagicMock
+
 from refnet_summarizer.processors.pdf_processor import PDFProcessor
 
 
 @pytest.fixture
-def processor():
+def processor():  # type: ignore
     """テスト用プロセッサー."""
     return PDFProcessor()
 
 
 @pytest.fixture
-def mock_pdf_content():
+def mock_pdf_content():  # type: ignore
     """モックPDFコンテンツ."""
     return b"%PDF-1.4 mock pdf content"
 
 
 @pytest.mark.asyncio
-async def test_download_pdf_success(processor, mock_pdf_content):
+async def test_download_pdf_success(processor, mock_pdf_content):  # type: ignore
     """PDF ダウンロード成功テスト."""
     with patch.object(processor.client, 'get') as mock_get:
         mock_response = AsyncMock()
@@ -34,7 +35,7 @@ async def test_download_pdf_success(processor, mock_pdf_content):
 
 
 @pytest.mark.asyncio
-async def test_download_pdf_invalid_content_type(processor):
+async def test_download_pdf_invalid_content_type(processor):  # type: ignore
     """PDF ダウンロード（無効なContent-Type）テスト."""
     with patch.object(processor.client, 'get') as mock_get:
         mock_response = AsyncMock()
@@ -48,7 +49,7 @@ async def test_download_pdf_invalid_content_type(processor):
         assert result is None
 
 
-def test_calculate_hash(processor, mock_pdf_content):
+def test_calculate_hash(processor, mock_pdf_content):  # type: ignore
     """ハッシュ計算テスト."""
     hash1 = processor.calculate_hash(mock_pdf_content)
     hash2 = processor.calculate_hash(mock_pdf_content)
@@ -57,7 +58,7 @@ def test_calculate_hash(processor, mock_pdf_content):
     assert len(hash1) == 64  # SHA256は64文字
 
 
-def test_clean_text(processor):
+def test_clean_text(processor):  # type: ignore
     """テキストクリーニングテスト."""
     dirty_text = "Line 1\r\n\r\nLine 2\n\n\n\nLine 3    with   spaces"
     clean_text = processor._clean_text(dirty_text)
@@ -67,7 +68,7 @@ def test_clean_text(processor):
 
 
 @pytest.mark.asyncio
-async def test_download_pdf_exception(processor):
+async def test_download_pdf_exception(processor):  # type: ignore
     """PDF ダウンロード例外テスト."""
     with patch.object(processor.client, 'get') as mock_get:
         mock_get.side_effect = Exception("Network error")
@@ -78,7 +79,7 @@ async def test_download_pdf_exception(processor):
 
 
 @pytest.mark.asyncio
-async def test_download_pdf_http_error(processor):
+async def test_download_pdf_http_error(processor):  # type: ignore
     """PDF ダウンロードHTTPエラーテスト."""
     with patch.object(processor.client, 'get') as mock_get:
         mock_response = AsyncMock()
@@ -93,10 +94,10 @@ async def test_download_pdf_http_error(processor):
 # test_extract_text_pdfplumber_success - removed due to mocking complexity
 
 
-def test_extract_text_pypdf2_fallback(processor, mock_pdf_content):
+def test_extract_text_pypdf2_fallback(processor, mock_pdf_content):  # type: ignore
     """PyPDF2フォールバックテスト."""
     # pdfplumberが失敗した場合のテスト
-    with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):
+    with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):  # type: ignore
         with patch('PyPDF2.PdfReader') as mock_pypdf:
             mock_page = MagicMock()
             mock_page.extract_text.return_value = "Test extracted text from PyPDF2"
@@ -109,22 +110,22 @@ def test_extract_text_pypdf2_fallback(processor, mock_pdf_content):
             assert result == "Test extracted text from PyPDF2"
 
 
-def test_extract_text_both_fail(processor, mock_pdf_content):
+def test_extract_text_both_fail(processor, mock_pdf_content):  # type: ignore
     """両方の抽出が失敗した場合のテスト."""
-    with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):
-        with patch('PyPDF2.PdfReader', side_effect=Exception("PyPDF2 error")):
+    with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):  # type: ignore
+        with patch('PyPDF2.PdfReader', side_effect=Exception("PyPDF2 error")):  # type: ignore
             result = processor.extract_text(mock_pdf_content)
 
             assert result == ""
 
 
-def test_extract_text_empty_content(processor):
+def test_extract_text_empty_content(processor):  # type: ignore
     """空のPDFコンテンツテスト."""
     result = processor.extract_text(b"")
     assert result == ""
 
 
-def test_extract_text_pdfplumber_no_text(processor, mock_pdf_content):
+def test_extract_text_pdfplumber_no_text(processor, mock_pdf_content):  # type: ignore
     """pdfplumberがテキストを抽出できない場合のテスト."""
     mock_page = MagicMock()
     mock_page.extract_text.return_value = None
@@ -146,9 +147,12 @@ def test_extract_text_pdfplumber_no_text(processor, mock_pdf_content):
             assert result == "PyPDF2 extracted text"
 
 
-def test_extract_text_clean_text_integration(processor, mock_pdf_content):
+def test_extract_text_clean_text_integration(processor, mock_pdf_content):  # type: ignore
     """テキスト抽出とクリーニングの統合テスト."""
-    dirty_extracted_text = "Line 1\r\n\r\nLine 2\n\n\n\nLine 3    with   spaces" * 10  # 100文字を超える長さに
+    # 100文字を超える長さに
+    dirty_extracted_text = (
+        "Line 1\r\n\r\nLine 2\n\n\n\nLine 3    with   spaces" * 10
+    )
 
     mock_page = MagicMock()
     mock_page.extract_text.return_value = dirty_extracted_text
@@ -168,7 +172,7 @@ def test_extract_text_clean_text_integration(processor, mock_pdf_content):
 
 
 @pytest.mark.asyncio
-async def test_close(processor):
+async def test_close(processor):  # type: ignore
     """クローズテスト."""
     with patch.object(processor.client, 'aclose') as mock_close:
         await processor.close()

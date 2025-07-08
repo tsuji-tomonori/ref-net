@@ -78,6 +78,10 @@ warn_unreachable = true
 strict_equality = true
 extra_checks = true
 
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

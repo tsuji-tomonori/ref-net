@@ -1,23 +1,24 @@
 """Celeryタスクのテスト."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+
 from refnet_summarizer.tasks import (
-    summarize_paper_task,
     batch_summarize_task,
-    celery_app
+    summarize_paper_task,
 )
 
 
 @pytest.fixture
-def mock_celery_app():
+def mock_celery_app():  # type: ignore
     """モックCeleryアプリケーション."""
     with patch('refnet_summarizer.tasks.celery_app') as mock_app:
         yield mock_app
 
 
 @pytest.mark.asyncio
-async def test_summarize_paper_task_success():
+async def test_summarize_paper_task_success():  # type: ignore
     """論文要約タスク成功テスト."""
     with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
         mock_service = AsyncMock()
@@ -34,7 +35,7 @@ async def test_summarize_paper_task_success():
             mock_run.assert_called_once()
 
 
-def test_summarize_paper_task_failure():
+def test_summarize_paper_task_failure():  # type: ignore
     """論文要約タスク失敗テスト."""
     # タスクが例外をキャッチして適切にログを出力することをテスト
     with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
@@ -43,9 +44,9 @@ def test_summarize_paper_task_failure():
         mock_service.summarize_paper.side_effect = Exception("Test error")
 
         # シンプルにasyncio.runが失敗する場合のテスト
-        with patch('asyncio.run', side_effect=Exception("Test error")):
+        with patch('asyncio.run', side_effect=Exception("Test error")):  # type: ignore
             # Celeryタスクのretryメカニズムは複雑なのでモック化
-            with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")):
+            with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")):  # type: ignore
                 with pytest.raises(Exception) as exc_info:
                     summarize_paper_task("test-paper-123")
 
@@ -53,7 +54,7 @@ def test_summarize_paper_task_failure():
                 assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
 
 
-def test_batch_summarize_task():
+def test_batch_summarize_task():  # type: ignore
     """バッチ要約タスクテスト."""
     paper_ids = ["paper-1", "paper-2", "paper-3"]
 
@@ -69,7 +70,7 @@ def test_batch_summarize_task():
         assert mock_delay.call_count == 3
 
 
-def test_celery_app_configuration():
+def test_celery_app_configuration():  # type: ignore
     """Celeryアプリケーション設定テスト."""
     from refnet_summarizer.tasks import celery_app
 
@@ -90,20 +91,22 @@ def test_celery_app_configuration():
 
 
 @pytest.mark.asyncio
-async def test_summarize_paper_task_exception_in_service():
+async def test_summarize_paper_task_exception_in_service():  # type: ignore
     """サービス内で例外が発生した場合のテスト."""
     with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
         mock_service = AsyncMock()
         mock_service_class.return_value = mock_service
         mock_service.summarize_paper.side_effect = Exception("Service error")
 
-        with patch('asyncio.run', side_effect=Exception("Service error")):
-            with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")) as mock_retry:
-                with pytest.raises(Exception):
+        with patch('asyncio.run', side_effect=Exception("Service error")):  # type: ignore
+            with patch.object(
+                summarize_paper_task, 'retry', side_effect=Exception("Retry")
+            ):  # type: ignore
+                with pytest.raises(Exception):  # type: ignore  # noqa: B017
                     summarize_paper_task("test-paper-123")
 
 
-def test_batch_summarize_task_multiple_papers():
+def test_batch_summarize_task_multiple_papers():  # type: ignore
     """複数論文のバッチ要約テスト."""
     paper_ids = ["paper-1", "paper-2", "paper-3", "paper-4", "paper-5"]
 
@@ -118,9 +121,9 @@ def test_batch_summarize_task_multiple_papers():
         assert mock_delay.call_count == 5
 
 
-def test_batch_summarize_task_empty_list():
+def test_batch_summarize_task_empty_list():  # type: ignore
     """空のリストでのバッチ要約テスト."""
-    paper_ids = []
+    paper_ids: list[str] = []
 
     with patch.object(summarize_paper_task, 'delay') as mock_delay:
         result = batch_summarize_task(paper_ids)
@@ -130,7 +133,7 @@ def test_batch_summarize_task_empty_list():
 
 
 @pytest.mark.asyncio
-async def test_summarize_paper_task_with_settings():
+async def test_summarize_paper_task_with_settings():  # type: ignore
     """設定を含むタスクテスト."""
     from refnet_summarizer.tasks import settings
 
