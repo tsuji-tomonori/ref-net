@@ -26,7 +26,10 @@ async def test_download_pdf_success(processor, mock_pdf_content):  # type: ignor
         mock_response = AsyncMock()
         mock_response.content = mock_pdf_content
         mock_response.headers = {"content-type": "application/pdf"}
-        mock_response.raise_for_status = AsyncMock()
+        # raise_for_statusを同期的にモック
+        def mock_raise_for_status():
+            pass
+        mock_response.raise_for_status = mock_raise_for_status
         mock_get.return_value = mock_response
 
         result = await processor.download_pdf("https://example.com/paper.pdf")
@@ -41,7 +44,10 @@ async def test_download_pdf_invalid_content_type(processor):  # type: ignore
         mock_response = AsyncMock()
         mock_response.content = b"not a pdf"
         mock_response.headers = {"content-type": "text/html"}
-        mock_response.raise_for_status = AsyncMock()
+        # raise_for_statusを同期的にモック
+        def mock_raise_for_status():
+            pass
+        mock_response.raise_for_status = mock_raise_for_status
         mock_get.return_value = mock_response
 
         result = await processor.download_pdf("https://example.com/notpdf.html")
@@ -82,8 +88,12 @@ async def test_download_pdf_exception(processor):  # type: ignore
 async def test_download_pdf_http_error(processor):  # type: ignore
     """PDF ダウンロードHTTPエラーテスト."""
     with patch.object(processor.client, 'get') as mock_get:
-        mock_response = AsyncMock()
-        mock_response.raise_for_status.side_effect = Exception("HTTP 404")
+        # 完全に同期的なモックレスポンスを使用
+        mock_response = MagicMock()
+        # raise_for_statusで例外を投げる同期的モック
+        def mock_raise_for_status():
+            raise Exception("HTTP 404")
+        mock_response.raise_for_status = mock_raise_for_status
         mock_get.return_value = mock_response
 
         result = await processor.download_pdf("https://example.com/paper.pdf")
@@ -94,26 +104,26 @@ async def test_download_pdf_http_error(processor):  # type: ignore
 # test_extract_text_pdfplumber_success - removed due to mocking complexity
 
 
-def test_extract_text_pypdf2_fallback(processor, mock_pdf_content):  # type: ignore
-    """PyPDF2フォールバックテスト."""
+def test_extract_text_pypdf_fallback(processor, mock_pdf_content):  # type: ignore
+    """pypdfフォールバックテスト."""
     # pdfplumberが失敗した場合のテスト
     with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):  # type: ignore
-        with patch('PyPDF2.PdfReader') as mock_pypdf:
+        with patch('pypdf.PdfReader') as mock_pypdf:
             mock_page = MagicMock()
-            mock_page.extract_text.return_value = "Test extracted text from PyPDF2"
+            mock_page.extract_text.return_value = "Test extracted text from pypdf"
             mock_reader = MagicMock()
             mock_reader.pages = [mock_page]
             mock_pypdf.return_value = mock_reader
 
             result = processor.extract_text(mock_pdf_content)
 
-            assert result == "Test extracted text from PyPDF2"
+            assert result == "Test extracted text from pypdf"
 
 
 def test_extract_text_both_fail(processor, mock_pdf_content):  # type: ignore
     """両方の抽出が失敗した場合のテスト."""
     with patch('pdfplumber.open', side_effect=Exception("pdfplumber error")):  # type: ignore
-        with patch('PyPDF2.PdfReader', side_effect=Exception("PyPDF2 error")):  # type: ignore
+        with patch('pypdf.PdfReader', side_effect=Exception("pypdf error")):  # type: ignore
             result = processor.extract_text(mock_pdf_content)
 
             assert result == ""
@@ -135,16 +145,16 @@ def test_extract_text_pdfplumber_no_text(processor, mock_pdf_content):  # type: 
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.return_value.__enter__.return_value = mock_pdf
 
-        with patch('PyPDF2.PdfReader') as mock_pypdf:
+        with patch('pypdf.PdfReader') as mock_pypdf:
             mock_page2 = MagicMock()
-            mock_page2.extract_text.return_value = "PyPDF2 extracted text"
+            mock_page2.extract_text.return_value = "pypdf extracted text"
             mock_reader = MagicMock()
             mock_reader.pages = [mock_page2]
             mock_pypdf.return_value = mock_reader
 
             result = processor.extract_text(mock_pdf_content)
 
-            assert result == "PyPDF2 extracted text"
+            assert result == "pypdf extracted text"
 
 
 def test_extract_text_clean_text_integration(processor, mock_pdf_content):  # type: ignore

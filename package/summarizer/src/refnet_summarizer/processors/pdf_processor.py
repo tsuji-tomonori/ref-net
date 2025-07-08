@@ -5,7 +5,7 @@ import tempfile
 
 import httpx
 import pdfplumber
-import PyPDF2
+import pypdf
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -43,15 +43,15 @@ class PDFProcessor:
             logger.error("Unexpected error downloading PDF", url=url, error=str(e))
             return None
 
-    def extract_text_pypdf2(self, pdf_content: bytes) -> str:
-        """PyPDF2でテキスト抽出."""
+    def extract_text_pypdf(self, pdf_content: bytes) -> str:
+        """pypdfでテキスト抽出."""
         try:
             with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
                 tmp_file.write(pdf_content)
                 tmp_file.flush()
 
                 with open(tmp_file.name, "rb") as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
+                    pdf_reader = pypdf.PdfReader(file)
                     text = ""
 
                     for page_num, page in enumerate(pdf_reader.pages):
@@ -67,7 +67,7 @@ class PDFProcessor:
                     return text.strip()
 
         except Exception as e:
-            logger.error("Failed to extract text with PyPDF2", error=str(e))
+            logger.error("Failed to extract text with pypdf", error=str(e))
             return ""
 
     def extract_text_pdfplumber(self, pdf_content: bytes) -> str:
@@ -101,10 +101,10 @@ class PDFProcessor:
         # まずpdfplumberを試行
         text = self.extract_text_pdfplumber(pdf_content)
 
-        # 失敗した場合はPyPDF2を試行
+        # 失敗した場合はpypdfを試行
         if not text or len(text) < 100:
-            logger.info("Fallback to PyPDF2 for text extraction")
-            text = self.extract_text_pypdf2(pdf_content)
+            logger.info("Fallback to pypdf for text extraction")
+            text = self.extract_text_pypdf(pdf_content)
 
         # テキストの後処理
         if text:
