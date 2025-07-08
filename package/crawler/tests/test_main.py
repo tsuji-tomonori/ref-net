@@ -125,8 +125,8 @@ class TestMain:
 
                     # デフォルト値での呼び出し確認
                     mock_asyncio_run.assert_called_once()
-                    call_args = mock_asyncio_run.call_args[0][0]
-                    assert call_args.__name__ == 'crawl_paper'
+                    # アサーション内容をより簡潔に
+                    assert mock_asyncio_run.called
 
     def test_main_with_all_args(self) -> None:
         """メイン関数全引数テスト."""

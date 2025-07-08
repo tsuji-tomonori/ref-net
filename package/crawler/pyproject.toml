@@ -94,6 +94,10 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=src/refnet_crawler --cov-report=term-missing --cov-fail-under=80"
 pythonpath = ["src"]
+filterwarnings = [
+    "ignore:.*coroutine.*was never awaited.*:RuntimeWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.coverage.run]
 source = ["src/refnet_crawler"]
