@@ -7,35 +7,38 @@ from fastapi.testclient import TestClient
 from refnet_shared.models.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from refnet_api.dependencies import get_db
 from refnet_api.main import app
 
-# テスト用データベース
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+@pytest.fixture
+def test_db() -> Generator[Session, None, None]:
+    """テスト用データベースセッション."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
+    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def override_get_db() -> Generator[Session, None, None]:
-    """テスト用DB依存関係."""
+    db = TestingSessionLocal()
     try:
-        db = TestingSessionLocal()
         yield db
     finally:
         db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
-    """テストクライアント."""
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as c:
-        yield c
-    Base.metadata.drop_all(bind=engine)
+def client(test_db: Session) -> Generator[TestClient, None, None]:
+    """テスト用FastAPIクライアント."""
+    app.dependency_overrides[get_db] = lambda: test_db
+    with TestClient(app) as client:
+        yield client
+    app.dependency_overrides.clear()
 
 
 def test_create_paper(client: TestClient) -> None:

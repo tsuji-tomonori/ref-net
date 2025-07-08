@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from refnet_shared.models.database import Author, Base, Paper
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from refnet_api.dependencies import get_db
 from refnet_api.main import app
@@ -15,7 +16,11 @@ from refnet_api.main import app
 @pytest.fixture
 def test_db() -> Generator[Session, None, None]:
     """テスト用データベースセッション."""
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
     Base.metadata.create_all(bind=engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -55,23 +60,30 @@ def sample_author(test_db: Session) -> Author:
         paper_id="paper-1",
         title="Test Paper 1",
         abstract="Abstract 1",
-        url="https://example.com/paper1",
         pdf_url="https://example.com/paper1.pdf",
     )
     paper2 = Paper(
         paper_id="paper-2",
         title="Test Paper 2",
         abstract="Abstract 2",
-        url="https://example.com/paper2",
         pdf_url="https://example.com/paper2.pdf",
     )
     test_db.add(paper1)
     test_db.add(paper2)
     test_db.commit()
 
-    # 著者と論文を関連付け
-    author.papers.append(paper1)
-    author.papers.append(paper2)
+    # 著者と論文を関連付け（position付き）
+    from refnet_shared.models.database import paper_authors
+    test_db.execute(
+        paper_authors.insert().values(
+            paper_id="paper-1", author_id="test-author-1", position=0
+        )
+    )
+    test_db.execute(
+        paper_authors.insert().values(
+            paper_id="paper-2", author_id="test-author-1", position=0
+        )
+    )
     test_db.commit()
 
     return author

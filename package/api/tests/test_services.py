@@ -109,11 +109,11 @@ class TestPaperService:
         # テストデータ
         update_data = PaperUpdate(title="Updated Title")
 
-        # テスト実行
-        result = paper_service.update_paper("non-existent", update_data)
+        # テスト実行（例外が発生することを期待）
+        with pytest.raises(ValueError, match="Paper not found"):
+            paper_service.update_paper("non-existent", update_data)
 
         # 検証
-        assert result is None
         mock_db.commit.assert_not_called()
 
     def test_queue_paper_processing(self, paper_service: PaperService, mock_db: Mock) -> None:
@@ -121,7 +121,9 @@ class TestPaperService:
         from refnet_shared.models.database import ProcessingQueue
 
         # モック設定
-        with patch.object(paper_service.celery_service, 'queue_crawl_task', return_value="task-123") as mock_queue:
+        with patch.object(
+            paper_service.celery_service, 'queue_crawl_task', return_value="task-123"
+        ) as mock_queue:
             # テスト実行
             result = paper_service.queue_paper_processing("test-paper")
 
