@@ -1,7 +1,7 @@
 """Semantic Scholar APIクライアントのテスト."""
 
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -40,7 +40,7 @@ async def test_get_paper_success(
 ) -> None:
     """論文取得成功テスト."""
     with patch.object(client.client, 'get') as mock_get:
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.json.return_value = mock_paper_data
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
@@ -57,11 +57,11 @@ async def test_get_paper_success(
 async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
     """論文取得（存在しない）テスト."""
     with patch.object(client.client, 'get') as mock_get:
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "404 Not Found",
             request=httpx.Request("GET", "https://api.semanticscholar.org/graph/v1/paper/nonexistent-paper"),
-            response=AsyncMock(status_code=404)
+            response=Mock(status_code=404)
         )
         mock_get.return_value = mock_response
 
@@ -83,7 +83,7 @@ async def test_get_paper_citations(
     }
 
     with patch.object(client.client, 'get') as mock_get:
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.json.return_value = citation_data
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
@@ -105,7 +105,7 @@ async def test_search_papers(
     }
 
     with patch.object(client.client, 'get') as mock_get:
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.json.return_value = search_data
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
