@@ -7,6 +7,16 @@ from refnet_summarizer.services.summarizer_service import SummarizerService
 from refnet_shared.models.database import Paper, ProcessingQueue
 
 
+# AIクライアントのパッチ設定
+@pytest.fixture(autouse=True)
+def mock_ai_client():
+    """すべてのテストでAIクライアントをモック."""
+    with patch('refnet_summarizer.services.summarizer_service.create_ai_client') as mock_create_ai:
+        mock_ai_client = AsyncMock()
+        mock_create_ai.return_value = mock_ai_client
+        yield mock_ai_client
+
+
 @pytest.fixture
 def mock_paper():
     """モック論文データ."""

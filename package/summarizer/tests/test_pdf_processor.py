@@ -24,7 +24,7 @@ async def test_download_pdf_success(processor, mock_pdf_content):
         mock_response = AsyncMock()
         mock_response.content = mock_pdf_content
         mock_response.headers = {"content-type": "application/pdf"}
-        mock_response.raise_for_status.return_value = None
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         result = await processor.download_pdf("https://example.com/paper.pdf")
@@ -39,7 +39,7 @@ async def test_download_pdf_invalid_content_type(processor):
         mock_response = AsyncMock()
         mock_response.content = b"not a pdf"
         mock_response.headers = {"content-type": "text/html"}
-        mock_response.raise_for_status.return_value = None
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         result = await processor.download_pdf("https://example.com/notpdf.html")

@@ -79,12 +79,17 @@ async def test_openai_extract_keywords_success(mock_openai_response):
 async def test_openai_rate_limit_error():
     """OpenAIレート制限エラーテスト."""
     import openai
+    from unittest.mock import MagicMock
+
+    # モックレスポンスオブジェクトを作成
+    mock_response = MagicMock()
+    mock_response.request = MagicMock()
 
     with patch('openai.AsyncOpenAI') as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         mock_client.chat.completions.create = AsyncMock(
-            side_effect=openai.RateLimitError("Rate limit exceeded", response=None, body=None)
+            side_effect=openai.RateLimitError("Rate limit exceeded", response=mock_response, body=None)
         )
 
         client = OpenAIClient("test-api-key")
