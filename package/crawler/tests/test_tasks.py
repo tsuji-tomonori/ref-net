@@ -1,6 +1,5 @@
 """Celeryタスクのテスト."""
 
-import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -45,10 +44,10 @@ class TestCrawlPaperTask:
     def test_crawl_paper_task_exception_handling(self) -> None:
         """論文クローリングタスク例外処理テスト."""
         with patch('refnet_crawler.tasks.asyncio.run') as mock_asyncio_run:
-            mock_asyncio_run.side_effect = Exception("Test error")
+            mock_asyncio_run.side_effect = ValueError("Test error")
 
             # 例外が発生することを確認（実際のタスクコンテキストでのテストは複雑のため概念的テスト）
-            with pytest.raises(Exception):
+            with pytest.raises(ValueError):
                 # 直接関数を呼び出してエラーハンドリングをテスト
                 mock_asyncio_run(None)
 
@@ -146,6 +145,7 @@ class TestCeleryApp:
 
             # モジュールの再インポートをシミュレート
             import importlib
+
             from refnet_crawler import tasks
             importlib.reload(tasks)
 

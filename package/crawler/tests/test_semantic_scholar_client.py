@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import httpx
 import pytest
+from refnet_shared.exceptions import ExternalAPIError
 
 from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 
@@ -142,7 +143,7 @@ async def test_get_paper_rate_limit(client: SemanticScholarClient) -> None:
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper("test-paper-1")
 
 
@@ -158,7 +159,7 @@ async def test_get_paper_server_error(client: SemanticScholarClient) -> None:
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper("test-paper-1")
 
 
@@ -168,7 +169,7 @@ async def test_get_paper_unexpected_error(client: SemanticScholarClient) -> None
     with patch.object(client.client, 'get') as mock_get:
         mock_get.side_effect = Exception("Network error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper("test-paper-1")
 
 
@@ -231,7 +232,7 @@ async def test_get_paper_citations_rate_limit(client: SemanticScholarClient) -> 
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_citations("test-paper-1")
 
 
@@ -247,7 +248,7 @@ async def test_get_paper_citations_server_error(client: SemanticScholarClient) -
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_citations("test-paper-1")
 
 
@@ -257,7 +258,7 @@ async def test_get_paper_citations_unexpected_error(client: SemanticScholarClien
     with patch.object(client.client, 'get') as mock_get:
         mock_get.side_effect = Exception("Network error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_citations("test-paper-1")
 
 
@@ -328,7 +329,7 @@ async def test_get_paper_references_rate_limit(client: SemanticScholarClient) ->
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_references("test-paper-1")
 
 
@@ -344,7 +345,7 @@ async def test_get_paper_references_server_error(client: SemanticScholarClient) 
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_references("test-paper-1")
 
 
@@ -354,7 +355,7 @@ async def test_get_paper_references_unexpected_error(client: SemanticScholarClie
     with patch.object(client.client, 'get') as mock_get:
         mock_get.side_effect = Exception("Network error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.get_paper_references("test-paper-1")
 
 
@@ -422,7 +423,7 @@ async def test_search_papers_rate_limit(client: SemanticScholarClient) -> None:
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.search_papers("test query")
 
 
@@ -438,7 +439,7 @@ async def test_search_papers_server_error(client: SemanticScholarClient) -> None
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.search_papers("test query")
 
 
@@ -448,7 +449,7 @@ async def test_search_papers_unexpected_error(client: SemanticScholarClient) -> 
     with patch.object(client.client, 'get') as mock_get:
         mock_get.side_effect = Exception("Network error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ExternalAPIError):
             await client.search_papers("test query")
 
 

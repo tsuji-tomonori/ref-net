@@ -1,6 +1,5 @@
 """メインモジュールのテスト."""
 
-import asyncio
 import sys
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -110,7 +109,9 @@ class TestMain:
                     main()
 
                 assert exc_info.value.code == 1
-                mock_print.assert_called_with("Usage: python -m refnet_crawler.main <paper_id> [hop_count] [max_hops]")
+                mock_print.assert_called_with(
+                    "Usage: python -m refnet_crawler.main <paper_id> [hop_count] [max_hops]"
+                )
 
     def test_main_with_default_args(self) -> None:
         """メイン関数デフォルト引数テスト."""

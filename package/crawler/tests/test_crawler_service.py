@@ -62,7 +62,9 @@ class TestCrawlerService:
         mock_db_session: Mock
     ) -> None:
         """論文クローリング成功テスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper = AsyncMock(return_value=mock_semantic_scholar_paper)
             mock_client_class.return_value = mock_client
@@ -79,7 +81,9 @@ class TestCrawlerService:
     @pytest.mark.asyncio
     async def test_crawl_paper_not_found(self, mock_db_session: Mock) -> None:
         """論文未発見テスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper = AsyncMock(return_value=None)
             mock_client_class.return_value = mock_client
@@ -92,7 +96,9 @@ class TestCrawlerService:
     @pytest.mark.asyncio
     async def test_crawl_paper_exception(self, mock_db_session: Mock) -> None:
         """論文クローリング例外テスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper = AsyncMock(side_effect=ExternalAPIError("API Error"))
             mock_client_class.return_value = mock_client
@@ -119,7 +125,7 @@ class TestCrawlerService:
 
                 service = CrawlerService()
                 # _save_authorsをモック化してauthors処理をスキップ
-                with patch.object(service, '_save_authors') as mock_save_authors:
+                with patch.object(service, '_save_authors'):
                     await service._save_paper_data(mock_db_session, mock_semantic_scholar_paper)
 
                 mock_db_session.add.assert_called_with(mock_paper)
@@ -139,7 +145,9 @@ class TestCrawlerService:
         existing_paper.citation_count = 5
         existing_paper.reference_count = 3
 
-        mock_db_session.query.return_value.filter_by.return_value.first.return_value = existing_paper
+        mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+            existing_paper
+        )
 
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
             service = CrawlerService()
@@ -180,7 +188,9 @@ class TestCrawlerService:
             Mock(paperId="citing-paper-2", citationCount=5, year=2020)
         ]
 
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper_citations = AsyncMock(return_value=citations)
             mock_client_class.return_value = mock_client
@@ -205,7 +215,9 @@ class TestCrawlerService:
             Mock(paperId="ref-paper-2", citationCount=20, year=2021)
         ]
 
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper_references = AsyncMock(return_value=references)
             mock_client_class.return_value = mock_client
@@ -226,7 +238,9 @@ class TestCrawlerService:
     async def test_save_paper_relation_new(self, mock_db_session: Mock) -> None:
         """新規論文関係保存テスト."""
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
-            with patch('refnet_crawler.services.crawler_service.PaperRelation') as mock_relation_class:
+            with patch(
+                'refnet_crawler.services.crawler_service.PaperRelation'
+            ) as mock_relation_class:
                 mock_relation = Mock()
                 mock_relation_class.return_value = mock_relation
 
@@ -245,7 +259,9 @@ class TestCrawlerService:
     async def test_save_paper_relation_existing(self, mock_db_session: Mock) -> None:
         """既存論文関係スキップテスト."""
         existing_relation = Mock()
-        mock_db_session.query.return_value.filter_by.return_value.first.return_value = existing_relation
+        mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+            existing_relation
+        )
 
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
             service = CrawlerService()
@@ -288,7 +304,9 @@ class TestCrawlerService:
     async def test_queue_paper_for_crawling_new(self, mock_db_session: Mock) -> None:
         """新規論文キューイングテスト."""
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
-            with patch('refnet_crawler.services.crawler_service.ProcessingQueue') as mock_queue_class:
+            with patch(
+                'refnet_crawler.services.crawler_service.ProcessingQueue'
+            ) as mock_queue_class:
                 mock_queue = Mock()
                 mock_queue_class.return_value = mock_queue
 
@@ -301,7 +319,9 @@ class TestCrawlerService:
     async def test_queue_paper_for_crawling_existing(self, mock_db_session: Mock) -> None:
         """既存論文キューイングスキップテスト."""
         existing_queue = Mock()
-        mock_db_session.query.return_value.filter_by.return_value.first.return_value = existing_queue
+        mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+            existing_queue
+        )
 
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
             service = CrawlerService()
@@ -360,7 +380,9 @@ class TestCrawlerService:
     @pytest.mark.asyncio
     async def test_close(self) -> None:
         """リソースクリーンアップテスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.close = AsyncMock()
             mock_client_class.return_value = mock_client
@@ -373,7 +395,9 @@ class TestCrawlerService:
     @pytest.mark.asyncio
     async def test_crawl_citations_exception(self, mock_db_session: Mock) -> None:
         """引用論文収集例外テスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper_citations = AsyncMock(side_effect=Exception("API Error"))
             mock_client_class.return_value = mock_client
@@ -385,7 +409,9 @@ class TestCrawlerService:
     @pytest.mark.asyncio
     async def test_crawl_references_exception(self, mock_db_session: Mock) -> None:
         """参考文献収集例外テスト."""
-        with patch('refnet_crawler.services.crawler_service.SemanticScholarClient') as mock_client_class:
+        with patch(
+            'refnet_crawler.services.crawler_service.SemanticScholarClient'
+        ) as mock_client_class:
             mock_client = Mock()
             mock_client.get_paper_references = AsyncMock(side_effect=Exception("API Error"))
             mock_client_class.return_value = mock_client
