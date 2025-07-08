@@ -82,3 +82,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=src --cov-fail-under=80 --cov-report=term-missing"
+filterwarnings = [
+    "ignore::RuntimeWarning",
+    "ignore:coroutine.*was never awaited:RuntimeWarning"
+]

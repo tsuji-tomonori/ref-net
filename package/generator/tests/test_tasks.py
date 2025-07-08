@@ -29,25 +29,22 @@ class TestCeleryTasks:
         mock_asyncio_run.assert_called_once()
 
     @patch("refnet_generator.tasks.logger")
-    def test_generate_markdown_task_internal_function_coverage(
+    def test_generate_markdown_task_success_logging(
         self,
         mock_logger: Mock,
     ) -> None:
-        """内部の_generate関数のカバレッジ確保."""
-        import asyncio
+        """成功時のログ出力テスト."""
+        with patch("refnet_generator.tasks.GeneratorService"):
+            with patch("refnet_generator.tasks.asyncio.run", return_value=True):
+                result = generate_markdown_task("test_paper")
 
-        from refnet_generator.services.generator_service import GeneratorService
-
-        # 内部のasync関数を直接テスト
-        async def test_internal() -> None:
-            with patch.object(GeneratorService, '__init__', return_value=None):
-                with patch.object(GeneratorService, 'generate_markdown', return_value=True):
-                    service = GeneratorService()
-                    result = await service.generate_markdown("test_paper")
-                    assert result is True
-
-        # asyncio.runでテスト実行
-        asyncio.run(test_internal())
+                assert result is True
+                mock_logger.info.assert_any_call(
+                    "Starting markdown generation task", paper_id="test_paper"
+                )
+                mock_logger.info.assert_any_call(
+                    "Markdown generation task completed", paper_id="test_paper", success=True
+                )
 
     def test_generate_markdown_task_celery_retry_path(self) -> None:
         """Celeryリトライパスのテスト."""
@@ -67,7 +64,7 @@ class TestCeleryTasks:
                     mock_logger.error.assert_called_with(
                         "Markdown generation task failed",
                         paper_id="test_paper",
-                        error="Test exception"
+                        error="Test exception",
                     )
 
     @patch("refnet_generator.tasks.generate_markdown_task.delay")
