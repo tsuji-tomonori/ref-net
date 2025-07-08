@@ -18,9 +18,9 @@ def test_paper_data_model() -> None:
         paperId=str(paper_data["paperId"]),
         title=str(paper_data["title"]),
         abstract=str(paper_data["abstract"]),
-        year=int(paper_data["year"]),
-        citationCount=int(paper_data["citationCount"]),
-        referenceCount=int(paper_data["referenceCount"]),
+        year=int(paper_data["year"]),  # type: ignore
+        citationCount=int(paper_data["citationCount"]),  # type: ignore
+        referenceCount=int(paper_data["referenceCount"]),  # type: ignore
     )
     assert paper.paperId == "test-paper-1"
     assert paper.title == "Test Paper"
@@ -42,9 +42,9 @@ def test_paper_to_dict_conversion() -> None:
         paperId=str(paper_data["paperId"]),
         title=str(paper_data["title"]),
         abstract=str(paper_data["abstract"]),
-        year=int(paper_data["year"]),
-        citationCount=int(paper_data["citationCount"]),
-        referenceCount=int(paper_data["referenceCount"]),
+        year=int(paper_data["year"]),  # type: ignore
+        citationCount=int(paper_data["citationCount"]),  # type: ignore
+        referenceCount=int(paper_data["referenceCount"]),  # type: ignore
     )
     db_dict = paper.to_paper_create_dict()
 
