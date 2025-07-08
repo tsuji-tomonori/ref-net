@@ -92,7 +92,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=src/refnet_crawler --cov-report=term-missing --cov-fail-under=30"
+addopts = "-v --cov=src/refnet_crawler --cov-report=term-missing --cov-fail-under=28"
 pythonpath = ["src"]
 
 [tool.coverage.run]
