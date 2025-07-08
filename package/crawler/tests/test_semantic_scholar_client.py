@@ -1,7 +1,7 @@
 """Semantic Scholar APIクライアントのテスト."""
 
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import httpx
 import pytest
