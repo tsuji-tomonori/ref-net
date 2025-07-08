@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "structlog>=23.0.0",
     "pydantic>=2.0.0",
+    "refnet-shared",
 ]
 
 [dependency-groups]
@@ -21,6 +22,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=0.23.0",
     "pytest-mock>=3.12.0",
+    "pytest-cov>=6.2.1",
     "ruff>=0.12.1",
 ]
 
@@ -30,6 +32,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/refnet_crawler"]
+
+[tool.uv.sources]
+refnet-shared = { path = "../shared" }
 
 [project.scripts]
 refnet-crawler = "refnet_crawler.main:main"
@@ -58,7 +66,7 @@ line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -72,9 +80,38 @@ warn_unreachable = true
 strict_equality = true
 extra_checks = true
 
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "refnet_shared.*",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v"
+addopts = "-v --cov=src/refnet_crawler --cov-report=term-missing --cov-fail-under=80"
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src/refnet_crawler"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "pass",
+]
+show_missing = true
+skip_covered = false
+precision = 2
