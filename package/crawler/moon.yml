@@ -10,6 +10,18 @@ tasks:
       - "pyproject.toml"
       - "uv.lock"
 
+  worker:
+    command: celery -A refnet_crawler.tasks.celery_app worker --loglevel=info --queue=crawl
+    inputs:
+      - "src/**/*.py"
+    local: true
+
+  beat:
+    command: celery -A refnet_crawler.tasks.celery_app beat --loglevel=info
+    inputs:
+      - "src/**/*.py"
+    local: true
+
   lint:
     command: uv run ruff check .
     inputs:
@@ -30,6 +42,14 @@ tasks:
     inputs:
       - "**/*.py"
       - "tests/**/*.py"
+
+  build:
+    command: docker build -t refnet-crawler .
+    inputs:
+      - "src/**/*.py"
+      - "Dockerfile"
+    outputs:
+      - "dist/"
 
   check:
     deps:
