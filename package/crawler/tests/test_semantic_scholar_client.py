@@ -1,10 +1,11 @@
 """Semantic Scholar APIクライアントのテスト."""
 
-import pytest
-import httpx
 from unittest.mock import AsyncMock, patch
+
+import httpx
+import pytest
+
 from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
-from refnet_crawler.models.paper_data import SemanticScholarPaper
 
 
 @pytest.fixture

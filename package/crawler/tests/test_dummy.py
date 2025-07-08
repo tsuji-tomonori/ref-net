@@ -1,6 +1,5 @@
 """クローラーサービスの基本テスト."""
 
-import pytest
 from refnet_crawler.models.paper_data import SemanticScholarPaper
 
 
