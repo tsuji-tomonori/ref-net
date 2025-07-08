@@ -4,7 +4,7 @@
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from refnet_shared.models.schemas import PaperCreate, PaperUpdate
+from refnet_shared.models.schemas import PaperCreate, PaperRelationResponse, PaperUpdate
 from sqlalchemy.orm import Session
 
 from refnet_api.dependencies import get_db
@@ -131,9 +131,24 @@ async def get_paper_relations(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
 
     relations = service.get_paper_relations(paper_id, relation_type)
+
+    # 関係タイプによって分類
+    references = []
+    citations = []
+    related_papers = []
+
+    for relation in relations:
+        relation_response = PaperRelationResponse.model_validate(relation)
+        if relation.relation_type == "reference" and relation.source_paper_id == paper_id:
+            references.append(relation_response)
+        elif relation.relation_type == "citation" and relation.target_paper_id == paper_id:
+            citations.append(relation_response)
+        else:
+            related_papers.append(relation_response)
+
     return PaperRelationsResponse(
         paper_id=paper_id,
-        references=[],  # 実際の実装で適切なデータを設定
-        citations=[],
-        related_papers=relations,
+        references=references,
+        citations=citations,
+        related_papers=related_papers,
     )

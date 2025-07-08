@@ -15,6 +15,7 @@ from refnet_api.responses import (
 from refnet_api.responses import (
     AuthorResponse as APIAuthorResponse,
 )
+from refnet_api.responses.author import PaperSummary
 
 logger = structlog.get_logger(__name__)
 router = APIRouter()
@@ -53,7 +54,7 @@ async def get_author_papers(author_id: str, db: Session = Depends(get_db)) -> Au
     if not author:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
 
-    papers = [{'id': p.paper_id, 'title': p.title} for p in author.papers]
+    papers = [PaperSummary(id=p.paper_id, title=p.title) for p in author.papers]
     return AuthorPapersResponse(
         author_id=author_id,
         papers=papers,

@@ -1,7 +1,6 @@
 """著者関連レスポンスモデル."""
 
-from typing import Any
-
+from pydantic import BaseModel
 from refnet_shared.models.schemas import AuthorResponse as SharedAuthorResponse
 
 from .base import BaseResponse
@@ -10,6 +9,13 @@ from .base import BaseResponse
 class AuthorResponse(SharedAuthorResponse):
     """著者レスポンス."""
     pass
+
+
+class PaperSummary(BaseModel):
+    """論文サマリ."""
+
+    id: str
+    title: str
 
 
 class AuthorListResponse(BaseResponse):
@@ -25,5 +31,5 @@ class AuthorPapersResponse(BaseResponse):
     """著者の論文一覧レスポンス."""
 
     author_id: str
-    papers: list[dict[str, Any]]
+    papers: list[PaperSummary]
     total: int

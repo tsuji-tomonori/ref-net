@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from refnet_api.dependencies import get_db
 from refnet_api.responses import QueueStatusResponse, TaskStatusResponse
+from refnet_api.responses.queue import QueueItemResponse
 from refnet_api.services.celery_service import CeleryService
 
 logger = structlog.get_logger(__name__)
@@ -31,14 +32,16 @@ async def get_queue_status(
     total = query.count()
 
     # シンプルなdict形式で返す
-    items_data = [{
-        'id': item.id,
-        'paper_id': item.paper_id,
-        'status': item.status,
-        'task_type': item.task_type,
-        'created_at': str(item.created_at),
-        'updated_at': str(item.updated_at),
-    } for item in queue_items]
+    items_data = [
+        QueueItemResponse(
+            id=item.id,
+            paper_id=item.paper_id,
+            status=item.status,
+            task_type=item.task_type,
+            created_at=str(item.created_at),
+            updated_at=str(item.updated_at),
+        ) for item in queue_items
+    ]
 
     return QueueStatusResponse(queue_items=items_data, total=total)
 
@@ -69,13 +72,15 @@ async def get_paper_queue_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="No queue items found for this paper"
         )
 
-    items_data = [{
-        'id': item.id,
-        'paper_id': item.paper_id,
-        'status': item.status,
-        'task_type': item.task_type,
-        'created_at': str(item.created_at),
-        'updated_at': str(item.updated_at),
-    } for item in queue_items]
+    items_data = [
+        QueueItemResponse(
+            id=item.id,
+            paper_id=item.paper_id,
+            status=item.status,
+            task_type=item.task_type,
+            created_at=str(item.created_at),
+            updated_at=str(item.updated_at),
+        ) for item in queue_items
+    ]
 
     return QueueStatusResponse(queue_items=items_data, total=len(items_data))

@@ -19,7 +19,7 @@ class QueueItemResponse(BaseResponse):
 class QueueStatusResponse(BaseResponse):
     """キューステータスレスポンス."""
 
-    queue_items: list[dict[str, Any]]
+    queue_items: list[QueueItemResponse]
     total: int
 
 

@@ -1,8 +1,11 @@
 """論文関連レスポンスモデル."""
 
-from typing import Any
-
-from refnet_shared.models.schemas import PaperResponse as SharedPaperResponse
+from refnet_shared.models.schemas import (
+    PaperRelationResponse,
+)
+from refnet_shared.models.schemas import (
+    PaperResponse as SharedPaperResponse,
+)
 
 from .base import BaseResponse
 
@@ -41,6 +44,6 @@ class PaperRelationsResponse(BaseResponse):
     """論文関係性レスポンス."""
 
     paper_id: str
-    references: list[dict[str, Any]]
-    citations: list[dict[str, Any]]
-    related_papers: list[dict[str, Any]]
+    references: list[PaperRelationResponse]
+    citations: list[PaperRelationResponse]
+    related_papers: list[PaperRelationResponse]
