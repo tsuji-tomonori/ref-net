@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from refnet_shared.config.environment import load_environment_settings
 from refnet_shared.utils import setup_logging
 
+from refnet_api.responses import HealthResponse, MessageResponse
 from refnet_api.routers import authors, papers, queue
 
 # 設定とロギング設定
@@ -49,15 +50,15 @@ app.include_router(queue.router, prefix="/api/v1/queue", tags=["queue"])
 
 
 @app.get("/")
-async def root() -> dict[str, str]:
+async def root() -> MessageResponse:
     """ルートエンドポイント."""
-    return {"message": "RefNet API", "version": "0.1.0", "environment": settings.environment.value}
+    return MessageResponse(message=f"RefNet API v0.1.0 - {settings.environment.value}")
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
+async def health_check() -> HealthResponse:
     """ヘルスチェック."""
-    return {"status": "healthy"}
+    return HealthResponse(status="healthy", message="API is running normally")
 
 
 def run() -> None:

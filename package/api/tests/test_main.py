@@ -19,17 +19,17 @@ def test_root_endpoint(client: TestClient) -> None:
 
     data = response.json()
     assert "message" in data
-    assert "version" in data
-    assert "environment" in data
-    assert data["message"] == "RefNet API"
-    assert data["version"] == "0.1.0"
+    assert "RefNet API v0.1.0 -" in data["message"]
 
 
 def test_health_check(client: TestClient) -> None:
     """ヘルスチェックテスト."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "message" in data
 
 
 def test_openapi_docs(client: TestClient) -> None:

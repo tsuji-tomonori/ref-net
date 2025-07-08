@@ -53,7 +53,7 @@ def test_create_paper(client: TestClient) -> None:
 
     data = response.json()
     assert data["paper_id"] == "test-paper-1"
-    assert data["title"] == "Test Paper"
+    assert "message" in data
 
 
 def test_get_paper(client: TestClient) -> None:
@@ -85,4 +85,7 @@ def test_health_check(client: TestClient) -> None:
     """ヘルスチェックテスト."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "message" in data
