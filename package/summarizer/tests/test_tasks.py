@@ -38,20 +38,16 @@ async def test_summarize_paper_task_success():  # type: ignore
 def test_summarize_paper_task_failure():  # type: ignore
     """論文要約タスク失敗テスト."""
     # タスクが例外をキャッチして適切にログを出力することをテスト
-    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
-        mock_service = AsyncMock()
-        mock_service_class.return_value = mock_service
-        mock_service.summarize_paper.side_effect = Exception("Test error")
 
-        # シンプルにasyncio.runが失敗する場合のテスト
-        with patch('asyncio.run', side_effect=Exception("Test error")):  # type: ignore
-            # Celeryタスクのretryメカニズムは複雑なのでモック化
-            with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")):  # type: ignore
-                with pytest.raises(Exception) as exc_info:
-                    summarize_paper_task("test-paper-123")
+    # シンプルにasyncio.runが失敗する場合のテスト
+    with patch('asyncio.run', side_effect=Exception("Test error")):  # type: ignore
+        # Celeryタスクのretryメカニズムは複雑なのでモック化
+        with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")):  # type: ignore
+            with pytest.raises(Exception) as exc_info:
+                summarize_paper_task("test-paper-123")
 
-                # 何らかの例外が発生することを確認
-                assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
+            # 何らかの例外が発生することを確認
+            assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
 
 
 def test_batch_summarize_task():  # type: ignore
@@ -59,7 +55,9 @@ def test_batch_summarize_task():  # type: ignore
     paper_ids = ["paper-1", "paper-2", "paper-3"]
 
     with patch.object(summarize_paper_task, 'delay') as mock_delay:
-        mock_delay.return_value = MagicMock(id="task-id")
+        mock_task = MagicMock()
+        mock_task.id = "task-id"
+        mock_delay.return_value = mock_task
 
         result = batch_summarize_task(paper_ids)
 
@@ -90,20 +88,15 @@ def test_celery_app_configuration():  # type: ignore
     assert celery_app.conf.worker_max_tasks_per_child == 100
 
 
-@pytest.mark.asyncio
-async def test_summarize_paper_task_exception_in_service():  # type: ignore
+def test_summarize_paper_task_exception_in_service():  # type: ignore
     """サービス内で例外が発生した場合のテスト."""
-    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
-        mock_service = AsyncMock()
-        mock_service_class.return_value = mock_service
-        mock_service.summarize_paper.side_effect = Exception("Service error")
 
-        with patch('asyncio.run', side_effect=Exception("Service error")):  # type: ignore
-            with patch.object(
-                summarize_paper_task, 'retry', side_effect=Exception("Retry")
-            ):  # type: ignore
-                with pytest.raises(Exception):  # type: ignore  # noqa: B017
-                    summarize_paper_task("test-paper-123")
+    with patch('asyncio.run', side_effect=Exception("Service error")):  # type: ignore
+        with patch.object(
+            summarize_paper_task, 'retry', side_effect=Exception("Retry")
+        ):  # type: ignore
+            with pytest.raises(Exception):  # type: ignore  # noqa: B017
+                summarize_paper_task("test-paper-123")
 
 
 def test_batch_summarize_task_multiple_papers():  # type: ignore
@@ -111,7 +104,9 @@ def test_batch_summarize_task_multiple_papers():  # type: ignore
     paper_ids = ["paper-1", "paper-2", "paper-3", "paper-4", "paper-5"]
 
     with patch.object(summarize_paper_task, 'delay') as mock_delay:
-        mock_delay.return_value = MagicMock(id="task-id")
+        mock_task = MagicMock()
+        mock_task.id = "task-id"
+        mock_delay.return_value = mock_task
 
         result = batch_summarize_task(paper_ids)
 

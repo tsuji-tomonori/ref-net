@@ -92,11 +92,15 @@ def test_main_summarize_no_paper_id():  # type: ignore
     """要約コマンドで論文IDなしテスト."""
     with patch.object(sys, 'argv', ['refnet-summarizer', 'summarize']):  # type: ignore
         with patch('builtins.print') as mock_print:
-            with pytest.raises(SystemExit) as exc_info:
-                main()
+            # asyncio.runが呼ばれないようにパッチを当てる
+            with patch('asyncio.run') as mock_run:
+                with pytest.raises(SystemExit) as exc_info:
+                    main()
 
-            assert exc_info.value.code == 1
-            mock_print.assert_called_with("Usage: refnet-summarizer summarize <paper_id>")
+                assert exc_info.value.code == 1
+                mock_print.assert_called_with("Usage: refnet-summarizer summarize <paper_id>")
+                # asyncio.runは呼ばれない
+                mock_run.assert_not_called()
 
 
 def test_main_unknown_command():  # type: ignore
