@@ -5,13 +5,24 @@ description = "FastAPI APIゲートウェイサービス"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    # 実行時に必要な依存関係をここに追加
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.24.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "pydantic>=2.0.0",
+    "structlog>=23.0.0",
+    "refnet-shared",
 ]
 
 [dependency-groups]
 dev = [
     "mypy>=1.16.1",
     "pytest>=8.4.1",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=6.2.1",
+    "httpx>=0.27.0",
     "ruff>=0.12.1",
 ]
 
@@ -29,7 +40,7 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
 ]
-ignore = []
+ignore = ["B008"]  # FastAPIのDepends()パターンを許可
 
 [tool.ruff.format]
 quote-style = "double"
@@ -39,7 +50,7 @@ line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -52,10 +63,58 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 extra_checks = true
+plugins = ["refnet_api.mypy_plugin"]
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "refnet_shared.*",
+]
+ignore_missing_imports = true
+
+[project.scripts]
+refnet-api = "refnet_api.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/refnet_api"]
+
+[tool.uv.sources]
+refnet-shared = { path = "../shared" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v"
+addopts = "-v --cov=src/refnet_api --cov-report=term-missing --cov-report=html --cov-fail-under=80"
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src/refnet_api"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/mypy_plugin.py",
+    "*/fastapi_checker.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "pass",
+]
+show_missing = true
+skip_covered = false
+precision = 2
