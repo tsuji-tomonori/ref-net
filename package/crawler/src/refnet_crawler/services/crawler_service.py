@@ -1,12 +1,17 @@
 """クローラーサービス."""
 
 import structlog
+from refnet_shared.models.database import (  # type: ignore
+    Author,
+    Paper,
+    PaperRelation,
+    ProcessingQueue,
+)
+from refnet_shared.models.database_manager import db_manager  # type: ignore
 from sqlalchemy.orm import Session
 
 from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 from refnet_crawler.models.paper_data import SemanticScholarPaper
-from refnet_shared.models.database import Author, Paper, PaperRelation, ProcessingQueue  # type: ignore
-from refnet_shared.models.database_manager import db_manager  # type: ignore
 
 logger = structlog.get_logger(__name__)
 
