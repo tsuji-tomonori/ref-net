@@ -1,0 +1,32 @@
+# {{ paper_id }} - ネットワーク図
+
+## ネットワーク統計
+
+- **総ノード数**: {{ network_stats.total_nodes }}
+- **総エッジ数**: {{ network_stats.total_edges }}
+- **入次数**: {{ network_stats.in_degree }}
+- **出次数**: {{ network_stats.out_degree }}
+
+## 関係図
+
+```mermaid
+graph TD
+    {{ paper_id }}[{{ paper_id }}]
+
+    {% for relation in relations %}
+    {% if relation.relation_type == "citation" %}
+    {{ relation.source_paper_id }} --> {{ relation.target_paper_id }}
+    {% elif relation.relation_type == "reference" %}
+    {{ relation.source_paper_id }} -.-> {{ relation.target_paper_id }}
+    {% endif %}
+    {% endfor %}
+```
+
+## 関係リスト
+
+{% for relation in relations %}
+- {{ relation.source_paper_id }} {{ "→" if relation.relation_type == "citation" else "⇢" }} {{ relation.target_paper_id }} ({{ relation.relation_type }})
+{% endfor %}
+
+---
+*Generated at: {{ generated_at }}*

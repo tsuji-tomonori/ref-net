@@ -1,19 +1,42 @@
 [project]
 name = "refnet-generator"
 version = "0.1.0"
-description = "Obsidian Markdown生成サービス"
+description = "RefNet Markdown Generator Service"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    # 実行時に必要な依存関係をここに追加
-]
-
-[dependency-groups]
-dev = [
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "jinja2>=3.1.0",
+    "networkx>=3.0.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "structlog>=23.0.0",
+    "pydantic>=2.0.0",
+    "refnet-shared",
     "mypy>=1.16.1",
     "pytest>=8.4.1",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=6.0.0",
     "ruff>=0.12.1",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+refnet-generator = "refnet_generator.main:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/refnet_generator"]
+
+[tool.uv.sources]
+refnet-shared = { path = "../shared" }
 
 [tool.ruff]
 line-length = 100
@@ -58,4 +81,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v"
+addopts = "-v --cov=src --cov-fail-under=80 --cov-report=term-missing"
+filterwarnings = [
+    "ignore::RuntimeWarning",
+    "ignore:coroutine.*was never awaited:RuntimeWarning"
+]

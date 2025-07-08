@@ -31,6 +31,20 @@ tasks:
       - "**/*.py"
       - "tests/**/*.py"
 
+  worker:
+    command: celery -A refnet_generator.tasks.celery_app worker --loglevel=info --queue=generate
+    inputs:
+      - "src/**/*.py"
+    local: true
+
+  build:
+    command: docker build -t refnet-generator .
+    inputs:
+      - "src/**/*.py"
+      - "Dockerfile"
+    outputs:
+      - "dist/"
+
   check:
     deps:
       - lint
