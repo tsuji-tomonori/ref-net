@@ -33,7 +33,10 @@ def mock_paper_data() -> dict[str, str | int | list[dict[str, str]]]:
 
 
 @pytest.mark.asyncio
-async def test_get_paper_success(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
+async def test_get_paper_success(
+    client: SemanticScholarClient,
+    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+) -> None:
     """論文取得成功テスト."""
     with patch.object(client.client, 'get') as mock_get:
         mock_response = AsyncMock()
@@ -67,7 +70,10 @@ async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_paper_citations(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
+async def test_get_paper_citations(
+    client: SemanticScholarClient,
+    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+) -> None:
     """引用論文取得テスト."""
     citation_data = {
         "data": [
@@ -88,7 +94,10 @@ async def test_get_paper_citations(client: SemanticScholarClient, mock_paper_dat
 
 
 @pytest.mark.asyncio
-async def test_search_papers(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
+async def test_search_papers(
+    client: SemanticScholarClient,
+    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+) -> None:
     """論文検索テスト."""
     search_data = {
         "data": [mock_paper_data]
