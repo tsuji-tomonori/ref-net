@@ -77,7 +77,10 @@ async def test_summarize_paper_success(
 
         # PDFプロセッサーのモック（asyncメソッドを考慮）
         with patch.object(
-            service.pdf_processor, 'download_pdf', new_callable=AsyncMock, return_value=mock_pdf_content
+            service.pdf_processor,
+            'download_pdf',
+            new_callable=AsyncMock,
+            return_value=mock_pdf_content
         ):  # type: ignore
             with patch.object(
                 service.pdf_processor, 'calculate_hash', return_value="mock-hash"
@@ -87,10 +90,16 @@ async def test_summarize_paper_success(
                 ):  # type: ignore
                     # AIクライアントのモック（asyncメソッドを考慮）
                     with patch.object(
-                        service.ai_client, 'generate_summary', new_callable=AsyncMock, return_value=mock_summary
+                        service.ai_client,
+                        'generate_summary',
+                        new_callable=AsyncMock,
+                        return_value=mock_summary
                     ):  # type: ignore
                         with patch.object(
-                            service.ai_client, 'extract_keywords', new_callable=AsyncMock, return_value=mock_keywords
+                            service.ai_client,
+                            'extract_keywords',
+                            new_callable=AsyncMock,
+                            return_value=mock_keywords
                         ):  # type: ignore
                             result = await service.summarize_paper("test-paper-123")
 
