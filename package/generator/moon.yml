@@ -6,37 +6,36 @@ dependsOn:
 
 tasks:
   install:
-    command: uv sync
     inputs:
       - "pyproject.toml"
       - "uv.lock"
+
+  lint:
+    command: uv run ruff check .
+    inputs:
+      - "**/*.py"
+
+  format:
+    command: uv run ruff format .
+    inputs:
+      - "**/*.py"
+
+  typecheck:
+    command: uv run mypy .
+    inputs:
+      - "**/*.py"
+
+  test:
+    command: uv run pytest tests/ -v
+    inputs:
+      - "**/*.py"
+      - "tests/**/*.py"
 
   worker:
     command: celery -A refnet_generator.tasks.celery_app worker --loglevel=info --queue=generate
     inputs:
       - "src/**/*.py"
     local: true
-
-  lint:
-    command: ruff check src/
-    inputs:
-      - "src/**/*.py"
-
-  format:
-    command: ruff format src/
-    inputs:
-      - "src/**/*.py"
-
-  typecheck:
-    command: mypy src/
-    inputs:
-      - "src/**/*.py"
-
-  test:
-    command: pytest tests/
-    inputs:
-      - "src/**/*.py"
-      - "tests/**/*.py"
 
   build:
     command: docker build -t refnet-generator .
