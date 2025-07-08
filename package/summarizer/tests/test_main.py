@@ -78,7 +78,7 @@ def test_main_summarize_success():  # type: ignore
 def test_main_summarize_failure():  # type: ignore
     """要約コマンド失敗テスト."""
     with patch.object(sys, 'argv', ['refnet-summarizer', 'summarize', 'test-paper-123']):  # type: ignore
-        with patch('refnet_summarizer.main.summarize_paper', return_value=False) as mock_summarize:
+        with patch('refnet_summarizer.main.summarize_paper', return_value=False):
             with patch('asyncio.run', return_value=False) as mock_run:
                 with patch('builtins.print') as mock_print:
                     with pytest.raises(SystemExit) as exc_info:
