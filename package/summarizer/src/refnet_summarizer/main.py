@@ -1,8 +1,7 @@
 """メインエントリーポイント."""
 
-import sys
 import asyncio
-from typing import Optional
+import sys
 
 import structlog
 

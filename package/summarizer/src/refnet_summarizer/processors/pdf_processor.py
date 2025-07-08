@@ -2,13 +2,11 @@
 
 import hashlib
 import tempfile
-from typing import Optional
-import httpx
-import PyPDF2
-import pdfplumber
-from refnet_shared.exceptions import ExternalAPIError
-import structlog
 
+import httpx
+import pdfplumber
+import PyPDF2
+import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -23,7 +21,7 @@ class PDFProcessor:
             follow_redirects=True,
         )
 
-    async def download_pdf(self, url: str) -> Optional[bytes]:
+    async def download_pdf(self, url: str) -> bytes | None:
         """PDFをダウンロード."""
         try:
             response = await self.client.get(url)
@@ -62,7 +60,9 @@ class PDFProcessor:
                             if page_text:
                                 text += page_text + "\n"
                         except Exception as e:
-                            logger.warning("Failed to extract text from page", page_num=page_num, error=str(e))
+                            logger.warning(
+                                "Failed to extract text from page", page_num=page_num, error=str(e)
+                            )
 
                     return text.strip()
 
@@ -86,7 +86,9 @@ class PDFProcessor:
                             if page_text:
                                 text += page_text + "\n"
                         except Exception as e:
-                            logger.warning("Failed to extract text from page", page_num=page_num, error=str(e))
+                            logger.warning(
+                                "Failed to extract text from page", page_num=page_num, error=str(e)
+                            )
 
                     return text.strip()
 

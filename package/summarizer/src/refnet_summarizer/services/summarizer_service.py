@@ -1,14 +1,14 @@
 """要約サービス."""
 
-from typing import Optional
 from datetime import datetime
-from sqlalchemy.orm import Session
+
+import structlog
 from refnet_shared.models.database import Paper, ProcessingQueue
 from refnet_shared.models.database_manager import db_manager
-from refnet_summarizer.processors.pdf_processor import PDFProcessor
-from refnet_summarizer.clients.ai_client import create_ai_client
-import structlog
+from sqlalchemy.orm import Session
 
+from refnet_summarizer.clients.ai_client import create_ai_client
+from refnet_summarizer.processors.pdf_processor import PDFProcessor
 
 logger = structlog.get_logger(__name__)
 
@@ -34,14 +34,18 @@ class SummarizerService:
                 # PDF URL チェック
                 if not paper.pdf_url:
                     logger.warning("No PDF URL available", paper_id=paper_id)
-                    await self._update_processing_status(session, paper_id, "summary", "failed", "No PDF URL")
+                    await self._update_processing_status(
+                        session, paper_id, "summary", "failed", "No PDF URL"
+                    )
                     return False
 
                 # PDF ダウンロードとテキスト抽出
                 pdf_content = await self.pdf_processor.download_pdf(paper.pdf_url)
                 if not pdf_content:
                     logger.warning("Failed to download PDF", paper_id=paper_id)
-                    await self._update_processing_status(session, paper_id, "summary", "failed", "PDF download failed")
+                    await self._update_processing_status(
+                        session, paper_id, "summary", "failed", "PDF download failed"
+                    )
                     return False
 
                 # PDF 情報の更新
@@ -52,8 +56,14 @@ class SummarizerService:
                 # テキスト抽出
                 text = self.pdf_processor.extract_text(pdf_content)
                 if not text or len(text) < 100:
-                    logger.warning("Failed to extract text or text too short", paper_id=paper_id, text_length=len(text))
-                    await self._update_processing_status(session, paper_id, "summary", "failed", "Text extraction failed")
+                    logger.warning(
+                        "Failed to extract text or text too short",
+                        paper_id=paper_id,
+                        text_length=len(text),
+                    )
+                    await self._update_processing_status(
+                        session, paper_id, "summary", "failed", "Text extraction failed"
+                    )
                     return False
 
                 logger.info("Text extracted successfully", paper_id=paper_id, text_length=len(text))
@@ -62,7 +72,9 @@ class SummarizerService:
                 summary = await self.ai_client.generate_summary(text, max_tokens=500)
                 if not summary:
                     logger.warning("Failed to generate summary", paper_id=paper_id)
-                    await self._update_processing_status(session, paper_id, "summary", "failed", "Summary generation failed")
+                    await self._update_processing_status(
+                        session, paper_id, "summary", "failed", "Summary generation failed"
+                    )
                     return False
 
                 # キーワード抽出
@@ -79,7 +91,12 @@ class SummarizerService:
                 session.commit()
                 await self._update_processing_status(session, paper_id, "summary", "completed")
 
-            logger.info("Paper summarized successfully", paper_id=paper_id, summary_length=len(summary), keywords_count=len(keywords))
+            logger.info(
+                "Paper summarized successfully",
+                paper_id=paper_id,
+                summary_length=len(summary),
+                keywords_count=len(keywords),
+            )
             return True
 
         except Exception as e:
@@ -93,10 +110,10 @@ class SummarizerService:
 
     def _get_ai_model_name(self) -> str:
         """使用中のAIモデル名を取得."""
-        if hasattr(self.ai_client, 'client') and hasattr(self.ai_client.client, '_api_key'):
-            if 'openai' in str(type(self.ai_client)):
+        if hasattr(self.ai_client, "client") and hasattr(self.ai_client.client, "_api_key"):
+            if "openai" in str(type(self.ai_client)):
                 return "gpt-4o-mini"
-            elif 'anthropic' in str(type(self.ai_client)):
+            elif "anthropic" in str(type(self.ai_client)):
                 return "claude-3-5-haiku"
         return "unknown"
 
@@ -106,13 +123,12 @@ class SummarizerService:
         paper_id: str,
         task_type: str,
         status: str,
-        error_message: Optional[str] = None
+        error_message: str | None = None,
     ) -> None:
         """処理状態を更新."""
-        queue_item = session.query(ProcessingQueue).filter_by(
-            paper_id=paper_id,
-            task_type=task_type
-        ).first()
+        queue_item = (
+            session.query(ProcessingQueue).filter_by(paper_id=paper_id, task_type=task_type).first()
+        )
 
         if queue_item:
             queue_item.status = status
