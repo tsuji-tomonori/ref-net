@@ -8,9 +8,7 @@ from pathlib import Path
 import anthropic
 import openai
 import structlog
-from refnet_shared.config.environment import (
-    load_environment_settings,  # type: ignore[import-untyped]
-)
+from refnet_shared.config.environment import load_environment_settings  # type: ignore[import-untyped]
 from refnet_shared.exceptions import ExternalAPIError  # type: ignore[import-untyped]
 from tenacity import retry, stop_after_attempt, wait_exponential
 
