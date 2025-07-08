@@ -6,6 +6,12 @@ RefNet Summarizerサービスは、OpenAIとAnthropicのAI APIを使用して論
 
 ## 対応AIプロバイダー
 
+### Claude Code (推奨)
+- **モデル**: ローカルCLI経由でClaude
+- **用途**: 直接統合・セキュアな処理
+- **特徴**: APIキー不要、プロジェクト連携
+- **必要**: `npm install -g @anthropic-ai/claude-code`
+
 ### OpenAI
 - **モデル**: gpt-4o-mini
 - **用途**: 高速・低コストな要約生成
@@ -59,14 +65,27 @@ RefNet Summarizerサービスは、OpenAIとAnthropicのAI APIを使用して論
 ### 必須環境変数
 
 ```bash
-# OpenAI設定
+# プロバイダー選択（省略時は自動）
+AI_PROVIDER=claude-code  # または openai, anthropic, auto
+
+# OpenAI設定（オプション）
 OPENAI_API_KEY=sk-...
 
-# Anthropic設定
+# Anthropic設定（オプション）
 ANTHROPIC_API_KEY=sk-ant-...
+```
 
-# 優先プロバイダー（省略時はOpenAI）
-AI_PROVIDER=openai  # または anthropic
+### Claude Code セットアップ
+
+```bash
+# Claude Code CLIのインストール
+npm install -g @anthropic-ai/claude-code
+
+# Claude Codeの初期設定（必要な場合）
+claude
+
+# 動作確認
+claude --version
 ```
 
 ### 設定ファイル
