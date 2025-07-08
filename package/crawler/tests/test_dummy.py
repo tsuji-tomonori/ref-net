@@ -15,12 +15,12 @@ def test_paper_data_model() -> None:
     }
 
     paper = SemanticScholarPaper(
-        paperId=paper_data["paperId"],
-        title=paper_data["title"],
-        abstract=paper_data["abstract"],
-        year=paper_data["year"],
-        citationCount=paper_data["citationCount"],
-        referenceCount=paper_data["referenceCount"],
+        paperId=str(paper_data["paperId"]),
+        title=str(paper_data["title"]),
+        abstract=str(paper_data["abstract"]),
+        year=int(paper_data["year"]),
+        citationCount=int(paper_data["citationCount"]),
+        referenceCount=int(paper_data["referenceCount"]),
     )
     assert paper.paperId == "test-paper-1"
     assert paper.title == "Test Paper"
@@ -39,12 +39,12 @@ def test_paper_to_dict_conversion() -> None:
     }
 
     paper = SemanticScholarPaper(
-        paperId=paper_data["paperId"],
-        title=paper_data["title"],
-        abstract=paper_data["abstract"],
-        year=paper_data["year"],
-        citationCount=paper_data["citationCount"],
-        referenceCount=paper_data["referenceCount"],
+        paperId=str(paper_data["paperId"]),
+        title=str(paper_data["title"]),
+        abstract=str(paper_data["abstract"]),
+        year=int(paper_data["year"]),
+        citationCount=int(paper_data["citationCount"]),
+        referenceCount=int(paper_data["referenceCount"]),
     )
     db_dict = paper.to_paper_create_dict()
 

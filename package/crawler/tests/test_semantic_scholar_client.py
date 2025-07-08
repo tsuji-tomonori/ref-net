@@ -1,5 +1,6 @@
 """Semantic Scholar APIクライアントのテスト."""
 
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -15,7 +16,7 @@ def client() -> SemanticScholarClient:
 
 
 @pytest.fixture
-def mock_paper_data() -> dict[str, str | int | list[dict[str, str]]]:
+def mock_paper_data() -> dict[str, Any]:
     """モック論文データ."""
     return {
         "paperId": "test-paper-1",
@@ -35,7 +36,7 @@ def mock_paper_data() -> dict[str, str | int | list[dict[str, str]]]:
 @pytest.mark.asyncio
 async def test_get_paper_success(
     client: SemanticScholarClient,
-    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+    mock_paper_data: dict[str, Any],
 ) -> None:
     """論文取得成功テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -72,7 +73,7 @@ async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
 @pytest.mark.asyncio
 async def test_get_paper_citations(
     client: SemanticScholarClient,
-    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+    mock_paper_data: dict[str, Any],
 ) -> None:
     """引用論文取得テスト."""
     citation_data = {
@@ -96,7 +97,7 @@ async def test_get_paper_citations(
 @pytest.mark.asyncio
 async def test_search_papers(
     client: SemanticScholarClient,
-    mock_paper_data: dict[str, str | int | list[dict[str, str]]],
+    mock_paper_data: dict[str, Any],
 ) -> None:
     """論文検索テスト."""
     search_data = {
