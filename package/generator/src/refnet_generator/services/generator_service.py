@@ -6,15 +6,9 @@ from pathlib import Path
 import networkx as nx  # type: ignore[import-untyped]
 import structlog
 from jinja2 import Environment, FileSystemLoader
-from refnet_shared.config.environment import (  # type: ignore[import-untyped]
-    load_environment_settings,
-)
-from refnet_shared.models.database import (  # type: ignore[import-untyped]
-    Author,
-    Paper,
-    PaperRelation,
-)
-from refnet_shared.models.database_manager import db_manager  # type: ignore[import-untyped]
+from refnet_shared.config.environment import load_environment_settings
+from refnet_shared.models.database import Author, Paper, PaperRelation
+from refnet_shared.models.database_manager import db_manager
 from sqlalchemy.orm import Session
 
 logger = structlog.get_logger(__name__)

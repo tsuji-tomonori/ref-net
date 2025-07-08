@@ -1,12 +1,12 @@
 """GeneratorServiceのテスト."""
 
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from refnet_generator.services.generator_service import GeneratorService
 from refnet_shared.models.database import Author, Paper, PaperRelation
+
+from refnet_generator.services.generator_service import GeneratorService
 
 
 @pytest.fixture
@@ -99,11 +99,11 @@ class TestGeneratorService:
         mock_session.query.return_value.join.return_value.filter.return_value.all.return_value = (
             sample_authors
         )
-        mock_session.query.return_value.filter_by.return_value.limit.return_value.all.return_value = sample_relations
+        filter_by_result = mock_session.query.return_value.filter_by.return_value
+        filter_by_result.limit.return_value.all.return_value = sample_relations
         mock_session.query.return_value.filter.return_value.all.return_value = sample_relations
-        mock_session.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [
-            sample_paper
-        ]
+        order_by_result = mock_session.query.return_value.filter.return_value.order_by.return_value
+        order_by_result.limit.return_value.all.return_value = [sample_paper]
         mock_session.query.return_value.count.return_value = 1
         mock_session.query.return_value.filter.return_value.count.return_value = 1
 

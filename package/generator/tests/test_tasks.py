@@ -1,9 +1,10 @@
 """Celeryタスクのテスト."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from celery.exceptions import Retry
+from celery.exceptions import Retry  # type: ignore[import-untyped]
+
 from refnet_generator.tasks import batch_generate_task, generate_markdown_task
 
 

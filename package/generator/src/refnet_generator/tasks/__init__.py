@@ -4,9 +4,7 @@ import asyncio
 
 import structlog
 from celery import Celery  # type: ignore[import-untyped]
-from refnet_shared.config.environment import (  # type: ignore[import-untyped]
-    load_environment_settings,
-)
+from refnet_shared.config.environment import load_environment_settings
 
 from refnet_generator.services.generator_service import GeneratorService
 
