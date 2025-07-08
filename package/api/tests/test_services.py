@@ -59,7 +59,9 @@ class TestPaperService:
         paper_data = PaperCreate(
             paper_id="test-paper",
             title="Test Paper",
-            year=2023
+            abstract="Test abstract",
+            year=2023,
+            language="en"
         )
 
         # テスト実行
@@ -86,7 +88,16 @@ class TestPaperService:
         # テストデータ
         update_data = PaperUpdate(
             title="Updated Title",
-            citation_count=100
+            abstract="Updated abstract",
+            year=2023,
+            citation_count=100,
+            reference_count=50,
+            summary="Updated summary",
+            pdf_url="https://example.com/updated.pdf",
+            pdf_hash="updated123",
+            crawl_status="completed",
+            pdf_status="completed",
+            summary_status="completed"
         )
 
         # テスト実行
@@ -107,7 +118,19 @@ class TestPaperService:
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         # テストデータ
-        update_data = PaperUpdate(title="Updated Title")
+        update_data = PaperUpdate(
+            title="Updated Title",
+            abstract="Test abstract",
+            year=2023,
+            citation_count=50,
+            reference_count=25,
+            summary="Test summary",
+            pdf_url="https://example.com/test.pdf",
+            pdf_hash="test123",
+            crawl_status="pending",
+            pdf_status="pending",
+            summary_status="pending"
+        )
 
         # テスト実行（例外が発生することを期待）
         with pytest.raises(ValueError, match="Paper not found"):
