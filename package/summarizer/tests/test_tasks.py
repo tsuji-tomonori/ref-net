@@ -42,36 +42,49 @@ def test_summarize_paper_task_failure():  # type: ignore
     # ロガーとstructlogをモック化して警告を回避
     with patch('refnet_summarizer.tasks.logger') as mock_logger:
         with patch('structlog.get_logger', return_value=mock_logger):
-            # シンプルにasyncio.runが失敗する場合のテスト
-            with patch('asyncio.run', side_effect=Exception("Test error")):  # type: ignore
-                # Celeryタスクのretryメカニズムは複雑なのでモック化
-                with patch.object(summarize_paper_task, 'retry', side_effect=Exception("Retry")):  # type: ignore
-                    with pytest.raises(Exception) as exc_info:
-                        summarize_paper_task("test-paper-123")
+            # 内部関数をモック化して実行
+            with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.summarize_paper.side_effect = Exception("Test error")
 
-                    # 何らかの例外が発生することを確認
-                    assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
-                    # ログが呼ばれることを確認
-                    mock_logger.info.assert_called()
-                    mock_logger.error.assert_called()
+                # asyncio.runをモック化
+                with patch('asyncio.run') as mock_run:
+                    mock_run.side_effect = Exception("Test error")
+
+                    # Celeryタスクのretryメカニズムは複雑なのでモック化
+                    with patch.object(
+                        summarize_paper_task, 'retry', side_effect=Exception("Retry")
+                    ):  # type: ignore
+                        with pytest.raises(Exception) as exc_info:
+                            summarize_paper_task("test-paper-123")
+
+                        # 何らかの例外が発生することを確認
+                        assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
+                        # ログが呼ばれることを確認
+                        mock_logger.info.assert_called()
+                        mock_logger.error.assert_called()
 
 
 def test_batch_summarize_task():  # type: ignore
     """バッチ要約タスクテスト."""
     paper_ids = ["paper-1", "paper-2", "paper-3"]
 
-    with patch.object(summarize_paper_task, 'delay') as mock_delay:
-        mock_task = MagicMock()
-        mock_task.id = "task-id"
-        mock_delay.return_value = mock_task
+    # ロガーとstructlogをモック化して警告を回避
+    with patch('refnet_summarizer.tasks.logger') as mock_logger:
+        with patch('structlog.get_logger', return_value=mock_logger):
+            with patch.object(summarize_paper_task, 'delay') as mock_delay:
+                mock_task = MagicMock()
+                mock_task.id = "task-id"
+                mock_delay.return_value = mock_task
 
-        result = batch_summarize_task(paper_ids)
+                result = batch_summarize_task(paper_ids)
 
-        assert len(result) == 3
-        assert result["paper-1"] == "task-id"
-        assert result["paper-2"] == "task-id"
-        assert result["paper-3"] == "task-id"
-        assert mock_delay.call_count == 3
+                assert len(result) == 3
+                assert result["paper-1"] == "task-id"
+                assert result["paper-2"] == "task-id"
+                assert result["paper-3"] == "task-id"
+                assert mock_delay.call_count == 3
 
 
 def test_celery_app_configuration():  # type: ignore
