@@ -3,8 +3,8 @@
 from datetime import UTC, datetime
 
 import structlog
-from refnet_shared.models.database import Paper, ProcessingQueue  # type: ignore[import-untyped]
-from refnet_shared.models.database_manager import db_manager  # type: ignore[import-untyped]
+from refnet_shared.models.database import Paper, ProcessingQueue
+from refnet_shared.models.database_manager import db_manager
 from sqlalchemy.orm import Session
 
 from refnet_summarizer.clients.ai_client import create_ai_client

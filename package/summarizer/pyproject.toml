@@ -82,6 +82,10 @@ extra_checks = true
 module = ["tests.*"]
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = ["refnet_shared.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
