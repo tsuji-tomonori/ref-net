@@ -9,13 +9,13 @@ from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 
 
 @pytest.fixture
-def client():
+def client() -> SemanticScholarClient:
     """テスト用クライアント."""
     return SemanticScholarClient()
 
 
 @pytest.fixture
-def mock_paper_data():
+def mock_paper_data() -> dict[str, str | int | list[dict[str, str]]]:
     """モック論文データ."""
     return {
         "paperId": "test-paper-1",
@@ -33,7 +33,7 @@ def mock_paper_data():
 
 
 @pytest.mark.asyncio
-async def test_get_paper_success(client, mock_paper_data):
+async def test_get_paper_success(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
     """論文取得成功テスト."""
     with patch.object(client.client, 'get') as mock_get:
         mock_response = AsyncMock()
@@ -50,13 +50,13 @@ async def test_get_paper_success(client, mock_paper_data):
 
 
 @pytest.mark.asyncio
-async def test_get_paper_not_found(client):
+async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
     """論文取得（存在しない）テスト."""
     with patch.object(client.client, 'get') as mock_get:
         mock_response = AsyncMock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "404 Not Found",
-            request=None,
+            request=httpx.Request("GET", "https://api.semanticscholar.org/graph/v1/paper/nonexistent-paper"),
             response=AsyncMock(status_code=404)
         )
         mock_get.return_value = mock_response
@@ -67,7 +67,7 @@ async def test_get_paper_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_get_paper_citations(client, mock_paper_data):
+async def test_get_paper_citations(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
     """引用論文取得テスト."""
     citation_data = {
         "data": [
@@ -88,7 +88,7 @@ async def test_get_paper_citations(client, mock_paper_data):
 
 
 @pytest.mark.asyncio
-async def test_search_papers(client, mock_paper_data):
+async def test_search_papers(client: SemanticScholarClient, mock_paper_data: dict[str, str | int | list[dict[str, str]]]) -> None:
     """論文検索テスト."""
     search_data = {
         "data": [mock_paper_data]

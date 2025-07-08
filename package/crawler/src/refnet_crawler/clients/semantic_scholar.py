@@ -2,8 +2,8 @@
 
 import httpx
 import structlog
-from refnet_shared.config.environment import load_environment_settings  # type: ignore
-from refnet_shared.exceptions import ExternalAPIError  # type: ignore
+from refnet_shared.config.environment import load_environment_settings
+from refnet_shared.exceptions import ExternalAPIError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from refnet_crawler.models.paper_data import SemanticScholarPaper
