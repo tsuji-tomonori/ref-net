@@ -31,7 +31,7 @@ class RefreshRequest(BaseModel):
 
 
 # 簡単なユーザーストア（実際の実装ではデータベースを使用）
-USERS = {
+USERS: dict[str, dict[str, str | list[str]]] = {
     "admin": {
         "username": "admin",
         "hashed_password": jwt_handler.hash_password("admin_password"),
@@ -52,7 +52,9 @@ async def login(login_data: LoginRequest) -> TokenResponse:
     """ユーザーログイン."""
     user = USERS.get(login_data.username)
 
-    if not user or not jwt_handler.verify_password(login_data.password, user["hashed_password"]):
+    if not user or not jwt_handler.verify_password(
+        login_data.password, str(user["hashed_password"])
+    ):
         logger.warning("Login failed", username=login_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -61,13 +63,13 @@ async def login(login_data: LoginRequest) -> TokenResponse:
 
     # トークン生成
     access_token = jwt_handler.create_access_token(
-        subject=user["username"],
+        subject=str(user["username"]),
         additional_claims={
             "roles": user["roles"],
             "permissions": user["permissions"]
         }
     )
-    refresh_token = jwt_handler.create_refresh_token(subject=user["username"])
+    refresh_token = jwt_handler.create_refresh_token(subject=str(user["username"]))
 
     logger.info("User logged in", username=user["username"])
 

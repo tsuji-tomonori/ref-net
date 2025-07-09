@@ -1,10 +1,12 @@
 """レート制限ミドルウェア."""
 
 import time
+from collections.abc import Callable
 
 import redis
 import structlog
 from fastapi import HTTPException, Request, status
+from fastapi.responses import Response
 
 from refnet_shared.config.environment import load_environment_settings
 
@@ -15,7 +17,7 @@ settings = load_environment_settings()
 class RateLimiter:
     """レート制限クラス."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初期化."""
         self.redis_client = redis.Redis(
             host=settings.redis.host,
@@ -70,12 +72,12 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def create_rate_limit_middleware(requests_per_minute: int = 60):
+def create_rate_limit_middleware(requests_per_minute: int = 60) -> Callable:
     """レート制限ミドルウェア作成."""
 
-    async def rate_limit_middleware(request: Request, call_next):
+    async def rate_limit_middleware(request: Request, call_next: Callable) -> Response:
         # クライアントIPを取得
-        client_ip = request.client.host
+        client_ip = request.client.host if request.client else "unknown"
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
             client_ip = forwarded_for.split(",")[0].strip()
@@ -83,7 +85,7 @@ def create_rate_limit_middleware(requests_per_minute: int = 60):
         # API パスのみレート制限を適用
         if not request.url.path.startswith("/api/"):
             response = await call_next(request)
-            return response
+            return response  # type: ignore
 
         # レート制限チェック
         key = f"rate_limit:{client_ip}"
@@ -107,6 +109,6 @@ def create_rate_limit_middleware(requests_per_minute: int = 60):
         response.headers["X-RateLimit-Remaining"] = str(requests_per_minute - info["current_requests"])
         response.headers["X-RateLimit-Reset"] = str(info["reset_time"])
 
-        return response
+        return response  # type: ignore
 
     return rate_limit_middleware

@@ -14,14 +14,20 @@ dependencies = [
     "celery>=5.3.0",
     "structlog>=23.0.0",
     "click>=8.0.0",
+    "fastapi>=0.104.0",
+    "pyjwt>=2.8.0",
+    "passlib[bcrypt]>=1.7.4",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
     "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.14.0",
     "mypy>=1.16.1",
     "ruff>=0.12.1",
+    "types-passlib>=1.7.7",
 ]
 
 [build-system]
@@ -71,6 +77,8 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 extra_checks = true
+mypy_path = "src"
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"

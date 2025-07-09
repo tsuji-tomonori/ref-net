@@ -20,7 +20,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class JWTHandler:
     """JWT認証ハンドラー."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初期化."""
         self.secret_key = settings.security.jwt_secret
         self.algorithm = settings.security.jwt_algorithm
@@ -82,8 +82,11 @@ class JWTHandler:
                 raise SecurityError("Token has expired")
 
             logger.debug("Token verified successfully", subject=payload["sub"], type=token_type)
-            return payload
+            return payload  # type: ignore
 
+        except SecurityError:
+            # Re-raise SecurityError without wrapping
+            raise
         except jwt.ExpiredSignatureError:
             logger.warning("Token expired", token_type=token_type)
             raise SecurityError("Token has expired") from None
@@ -97,7 +100,7 @@ class JWTHandler:
     def extract_subject(self, token: str) -> str:
         """トークンからsubject抽出."""
         payload = self.verify_token(token)
-        return payload["sub"]
+        return str(payload["sub"])
 
     def hash_password(self, password: str) -> str:
         """パスワードハッシュ化."""

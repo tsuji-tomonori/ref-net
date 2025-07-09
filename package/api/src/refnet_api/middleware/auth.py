@@ -1,7 +1,8 @@
 """認証・認可ミドルウェア."""
 
+from collections.abc import Callable
+
 import structlog
-from typing import Callable
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from refnet_shared.auth.jwt_handler import jwt_handler

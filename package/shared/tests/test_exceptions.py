@@ -8,6 +8,7 @@ from refnet_shared.exceptions import (
     ExternalAPIError,
     ProcessingError,
     RefNetException,
+    SecurityError,
     ValidationError,
 )
 
@@ -50,3 +51,9 @@ def test_validation_error():
     """検証エラーテスト."""
     with pytest.raises(ValidationError):
         raise ValidationError("Validation error")
+
+
+def test_security_error():
+    """セキュリティエラーテスト."""
+    with pytest.raises(SecurityError):
+        raise SecurityError("Security error")
