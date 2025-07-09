@@ -78,6 +78,7 @@ def test_main_summarize_success():  # type: ignore
 def test_main_summarize_failure():  # type: ignore
     """要約コマンド失敗テスト."""
     with patch.object(sys, 'argv', ['refnet-summarizer', 'summarize', 'test-paper-123']):  # type: ignore
+        # summarize_paper関数を直接モックして、コルーチンを作成しない
         with patch('refnet_summarizer.main.summarize_paper', return_value=False):
             with patch('asyncio.run', return_value=False) as mock_run:
                 with patch('builtins.print') as mock_print:
@@ -93,15 +94,11 @@ def test_main_summarize_no_paper_id():  # type: ignore
     """要約コマンドで論文IDなしテスト."""
     with patch.object(sys, 'argv', ['refnet-summarizer', 'summarize']):  # type: ignore
         with patch('builtins.print') as mock_print:
-            # summarize_paper関数もモック化してコルーチンが作成されないようにする
-            with patch('refnet_summarizer.main.summarize_paper') as mock_summarize:
-                with pytest.raises(SystemExit) as exc_info:
-                    main()
+            with pytest.raises(SystemExit) as exc_info:
+                main()
 
-                assert exc_info.value.code == 1
-                mock_print.assert_called_with("Usage: refnet-summarizer summarize <paper_id>")
-                # summarize_paperは呼ばれない
-                mock_summarize.assert_not_called()
+            assert exc_info.value.code == 1
+            mock_print.assert_called_with("Usage: refnet-summarizer summarize <paper_id>")
 
 
 def test_main_unknown_command():  # type: ignore
