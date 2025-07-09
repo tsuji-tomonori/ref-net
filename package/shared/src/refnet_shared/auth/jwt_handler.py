@@ -31,12 +31,7 @@ class JWTHandler:
         """アクセストークン生成."""
         expire = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
 
-        payload = {
-            "sub": subject,
-            "exp": expire,
-            "iat": datetime.now(timezone.utc),
-            "type": "access"
-        }
+        payload = {"sub": subject, "exp": expire, "iat": datetime.now(timezone.utc), "type": "access"}
 
         if additional_claims:
             payload.update(additional_claims)
@@ -53,12 +48,7 @@ class JWTHandler:
         """リフレッシュトークン生成."""
         expire = datetime.now(timezone.utc) + timedelta(days=self.refresh_token_expire_days)
 
-        payload = {
-            "sub": subject,
-            "exp": expire,
-            "iat": datetime.now(timezone.utc),
-            "type": "refresh"
-        }
+        payload = {"sub": subject, "exp": expire, "iat": datetime.now(timezone.utc), "type": "refresh"}
 
         try:
             encoded_jwt = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)

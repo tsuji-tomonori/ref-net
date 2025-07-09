@@ -19,12 +19,7 @@ class RateLimiter:
 
     def __init__(self) -> None:
         """初期化."""
-        self.redis_client = redis.Redis(
-            host=settings.redis.host,
-            port=settings.redis.port,
-            db=settings.redis.database,
-            decode_responses=True
-        )
+        self.redis_client = redis.Redis(host=settings.redis.host, port=settings.redis.port, db=settings.redis.database, decode_responses=True)
 
     def is_allowed(self, key: str, limit: int, window_seconds: int) -> tuple[bool, dict]:
         """レート制限チェック."""
@@ -56,7 +51,7 @@ class RateLimiter:
                 "current_requests": current_requests,
                 "limit": limit,
                 "window_seconds": window_seconds,
-                "reset_time": current_time + window_seconds
+                "reset_time": current_time + window_seconds,
             }
 
         return True, {
@@ -64,7 +59,7 @@ class RateLimiter:
             "current_requests": current_requests + 1,
             "limit": limit,
             "window_seconds": window_seconds,
-            "reset_time": current_time + window_seconds
+            "reset_time": current_time + window_seconds,
         }
 
 
@@ -95,11 +90,7 @@ def create_rate_limit_middleware(requests_per_minute: int = 60) -> Callable:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Rate limit exceeded",
-                headers={
-                    "X-RateLimit-Limit": str(requests_per_minute),
-                    "X-RateLimit-Remaining": "0",
-                    "X-RateLimit-Reset": str(info["reset_time"])
-                }
+                headers={"X-RateLimit-Limit": str(requests_per_minute), "X-RateLimit-Remaining": "0", "X-RateLimit-Reset": str(info["reset_time"])},
             )
 
         response = await call_next(request)

@@ -9,45 +9,19 @@ from prometheus_client import Counter, Gauge, Histogram, generate_latest  # type
 logger = structlog.get_logger(__name__)
 
 # メトリクス定義
-REQUEST_COUNT = Counter(
-    'refnet_http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status']
-)
+REQUEST_COUNT = Counter("refnet_http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"])
 
-REQUEST_DURATION = Histogram(
-    'refnet_http_request_duration_seconds',
-    'HTTP request duration',
-    ['method', 'endpoint']
-)
+REQUEST_DURATION = Histogram("refnet_http_request_duration_seconds", "HTTP request duration", ["method", "endpoint"])
 
-TASK_COUNT = Counter(
-    'refnet_celery_tasks_total',
-    'Total Celery tasks',
-    ['task_name', 'state']
-)
+TASK_COUNT = Counter("refnet_celery_tasks_total", "Total Celery tasks", ["task_name", "state"])
 
-TASK_DURATION = Histogram(
-    'refnet_celery_task_duration_seconds',
-    'Celery task duration',
-    ['task_name']
-)
+TASK_DURATION = Histogram("refnet_celery_task_duration_seconds", "Celery task duration", ["task_name"])
 
-PAPER_COUNT = Gauge(
-    'refnet_papers_total',
-    'Total papers in database'
-)
+PAPER_COUNT = Gauge("refnet_papers_total", "Total papers in database")
 
-PAPER_STATUS_COUNT = Gauge(
-    'refnet_papers_by_status',
-    'Papers by processing status',
-    ['status_type', 'status']
-)
+PAPER_STATUS_COUNT = Gauge("refnet_papers_by_status", "Papers by processing status", ["status_type", "status"])
 
-ACTIVE_CONNECTIONS = Gauge(
-    'refnet_db_connections_active',
-    'Active database connections'
-)
+ACTIVE_CONNECTIONS = Gauge("refnet_db_connections_active", "Active database connections")
 
 
 class MetricsCollector:
@@ -105,12 +79,7 @@ class PrometheusMiddleware:
                 status_code = message["status"]
                 duration = time.time() - start_time
 
-                MetricsCollector.track_request(
-                    method=scope["method"],
-                    endpoint=scope["path"],
-                    status_code=status_code,
-                    duration=duration
-                )
+                MetricsCollector.track_request(method=scope["method"], endpoint=scope["path"], status_code=status_code, duration=duration)
 
             await send(message)
 
