@@ -78,14 +78,16 @@ def test_main_summarize_success():  # type: ignore
 def test_main_summarize_failure():  # type: ignore
     """要約コマンド失敗テスト."""
     with patch.object(sys, 'argv', ['refnet-summarizer', 'summarize', 'test-paper-123']):  # type: ignore
-        with patch('asyncio.run', return_value=False) as mock_run:
-            with patch('builtins.print') as mock_print:
-                with pytest.raises(SystemExit) as exc_info:
-                    main()
+        # summarize_paper関数を直接モックして、コルーチンを作成しない
+        with patch('refnet_summarizer.main.summarize_paper', return_value=False):
+            with patch('asyncio.run', return_value=False) as mock_run:
+                with patch('builtins.print') as mock_print:
+                    with pytest.raises(SystemExit) as exc_info:
+                        main()
 
-                assert exc_info.value.code == 1
-                mock_run.assert_called_once()
-                mock_print.assert_called_with("Failed to summarize paper: test-paper-123")
+                    assert exc_info.value.code == 1
+                    mock_run.assert_called_once()
+                    mock_print.assert_called_with("Failed to summarize paper: test-paper-123")
 
 
 def test_main_summarize_no_paper_id():  # type: ignore

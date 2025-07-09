@@ -42,28 +42,24 @@ def test_summarize_paper_task_failure():  # type: ignore
     # ロガーとstructlogをモック化して警告を回避
     with patch('refnet_summarizer.tasks.logger') as mock_logger:
         with patch('structlog.get_logger', return_value=mock_logger):
-            # 内部関数をモック化して実行
-            with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
-                mock_service = AsyncMock()
-                mock_service_class.return_value = mock_service
-                mock_service.summarize_paper.side_effect = Exception("Test error")
+            # 内部関数をモック化してコルーチンを回避
+            async def mock_summarize():
+                raise Exception("Test error")
 
-                # asyncio.runをモック化
-                with patch('asyncio.run') as mock_run:
-                    mock_run.side_effect = Exception("Test error")
+            # asyncio.runをモック化してコルーチンを実行
+            with patch('asyncio.run', side_effect=Exception("Test error")) as mock_run:
+                # Celeryタスクのretryメカニズムは複雑なのでモック化
+                with patch.object(
+                    summarize_paper_task, 'retry', side_effect=Exception("Retry")
+                ):  # type: ignore
+                    with pytest.raises(Exception) as exc_info:
+                        summarize_paper_task("test-paper-123")
 
-                    # Celeryタスクのretryメカニズムは複雑なのでモック化
-                    with patch.object(
-                        summarize_paper_task, 'retry', side_effect=Exception("Retry")
-                    ):  # type: ignore
-                        with pytest.raises(Exception) as exc_info:
-                            summarize_paper_task("test-paper-123")
-
-                        # 何らかの例外が発生することを確認
-                        assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
-                        # ログが呼ばれることを確認
-                        mock_logger.info.assert_called()
-                        mock_logger.error.assert_called()
+                    # 何らかの例外が発生することを確認
+                    assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
+                    # ログが呼ばれることを確認
+                    mock_logger.info.assert_called()
+                    mock_logger.error.assert_called()
 
 
 def test_batch_summarize_task():  # type: ignore
@@ -149,22 +145,24 @@ def test_batch_summarize_task_empty_list():  # type: ignore
         assert mock_delay.call_count == 0
 
 
-@pytest.mark.asyncio
-async def test_summarize_paper_task_with_settings():  # type: ignore
+def test_summarize_paper_task_with_settings():  # type: ignore
     """設定を含むタスクテスト."""
     from refnet_summarizer.tasks import settings
 
     # 設定が正しく読み込まれていることを確認
     assert settings is not None
 
-    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
-        mock_service = AsyncMock()
-        mock_service_class.return_value = mock_service
-        mock_service.summarize_paper.return_value = True
+    # ロガーをモック化
+    with patch('refnet_summarizer.tasks.logger') as mock_logger:
+        with patch('structlog.get_logger', return_value=mock_logger):
+            with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.summarize_paper.return_value = True
 
-        with patch('asyncio.run') as mock_run:
-            mock_run.return_value = True
+                with patch('asyncio.run') as mock_run:
+                    mock_run.return_value = True
 
-            result = summarize_paper_task("test-paper-123")
+                    result = summarize_paper_task("test-paper-123")
 
-            assert result is True
+                    assert result is True
