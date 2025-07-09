@@ -1,6 +1,6 @@
 """JWT認証ハンドラー."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
@@ -29,12 +29,12 @@ class JWTHandler:
 
     def create_access_token(self, subject: str, additional_claims: dict | None = None) -> str:
         """アクセストークン生成."""
-        expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
 
         payload = {
             "sub": subject,
             "exp": expire,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
             "type": "access"
         }
 
@@ -51,12 +51,12 @@ class JWTHandler:
 
     def create_refresh_token(self, subject: str) -> str:
         """リフレッシュトークン生成."""
-        expire = datetime.utcnow() + timedelta(days=self.refresh_token_expire_days)
+        expire = datetime.now(timezone.utc) + timedelta(days=self.refresh_token_expire_days)
 
         payload = {
             "sub": subject,
             "exp": expire,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
             "type": "refresh"
         }
 
@@ -78,7 +78,7 @@ class JWTHandler:
                 raise SecurityError(f"Invalid token type. Expected {token_type}")
 
             # 有効期限確認
-            if datetime.utcnow() > datetime.fromtimestamp(payload["exp"]):
+            if datetime.now(timezone.utc) > datetime.fromtimestamp(payload["exp"], tz=timezone.utc):
                 raise SecurityError("Token has expired")
 
             logger.debug("Token verified successfully", subject=payload["sub"], type=token_type)
