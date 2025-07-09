@@ -58,7 +58,29 @@ async def root() -> MessageResponse:
 @app.get("/health")
 async def health_check() -> HealthResponse:
     """ヘルスチェック."""
-    return HealthResponse(status="healthy", message="API is running normally")
+    from redis import Redis
+    from refnet_shared.models.database_manager import db_manager
+
+    # データベース接続チェック
+    db_health = db_manager.health_check()
+
+    # Redis接続チェック
+    redis_health = {"status": "healthy"}
+    try:
+        redis_client = Redis.from_url(settings.redis.url)
+        redis_client.ping()
+    except Exception as e:
+        redis_health = {"status": "unhealthy", "error": str(e)}
+
+    # 全体のヘルスステータス決定
+    db_healthy = db_health["status"] == "healthy"
+    redis_healthy = redis_health["status"] == "healthy"
+    overall_status = "healthy" if db_healthy and redis_healthy else "unhealthy"
+
+    return HealthResponse(
+        status=overall_status,
+        message=f"API is running - DB: {db_health['status']}, Redis: {redis_health['status']}"
+    )
 
 
 def run() -> None:
