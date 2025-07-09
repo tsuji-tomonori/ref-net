@@ -47,7 +47,7 @@ def test_summarize_paper_task_failure():  # type: ignore
                 raise Exception("Test error")
 
             # asyncio.runをモック化してコルーチンを実行
-            with patch('asyncio.run', side_effect=Exception("Test error")) as mock_run:
+            with patch('asyncio.run', side_effect=Exception("Test error")):
                 # Celeryタスクのretryメカニズムは複雑なのでモック化
                 with patch.object(
                     summarize_paper_task, 'retry', side_effect=Exception("Retry")
