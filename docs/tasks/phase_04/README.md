@@ -20,19 +20,41 @@ RefNetシステムの本番運用に必要なインフラストラクチャ、�
 2. **01_monitoring_observability.md** - 監視・ログ・メトリクス（Docker完了後）
 3. **02_security_configuration.md** - セキュリティ・認証・認可（独立実行可能）
 4. **03_batch_automation.md** - バッチスケジューリング・自動化（Phase 3完了後）
+5. **04_celery_integration.md** - Celery統合設定（Beat・Flower・統一アプリケーション）
+6. **05_service_integration.md** - サービス間連携設定（エンドツーエンド処理フロー）
 
 ## 実行順序
 
 ```mermaid
 graph TD
     A[Phase 3 完了] --> B[00_docker_setup]
-    A --> C[02_security_configuration]
-    B --> D[01_monitoring_observability]
-    B --> E[03_batch_automation]
-    C --> F[Phase 4 完了]
-    D --> F
-    E --> F
+    B --> C[01_monitoring_observability]
+    C --> D[02_security_configuration]
+    D --> E[03_batch_automation]
+    E --> F[04_celery_integration]
+    F --> G[05_service_integration]
+    G --> H[Phase 4 完了]
 ```
+
+### 推奨実行順序
+
+1. **00_docker_setup.md**
+   - Docker Compose・コンテナオーケストレーション
+
+2. **01_monitoring_observability.md**
+   - 監視・ログ・メトリクス
+
+3. **02_security_configuration.md**
+   - セキュリティ・認証・認可
+
+4. **03_batch_automation.md**
+   - バッチスケジューリング・自動化
+
+5. **04_celery_integration.md**
+   - Celery統合設定
+
+6. **05_service_integration.md**
+   - サービス間連携設定
 
 ## 実施者
 
@@ -41,6 +63,81 @@ graph TD
 - **ブランチ戦略**:
   - `claude/phase4-infrastructure-$(date +'%Y%m%d%H%M%S')`
   - または個別タスクごとの細分化ブランチ
+
+## タスク実行手順
+
+### 1. 事前準備
+```bash
+# 新しいブランチの作成
+git checkout -b claude/phase4-$(date +'%Y%m%d%H%M%S')
+
+# 環境変数の設定
+cp .env.example .env
+# .envファイルを編集してAPIキーを設定
+```
+
+### 2. 実行フロー
+
+#### Phase 1: Docker設定
+```bash
+# 00_docker_setup.mdを実行
+# - Docker Compose・コンテナオーケストレーション
+```
+
+#### Phase 2: 監視設定
+```bash
+# 01_monitoring_observability.mdを実行
+# - 監視・ログ・メトリクス
+```
+
+#### Phase 3: セキュリティ設定
+```bash
+# 02_security_configuration.mdを実行
+# - セキュリティ・認証・認可
+```
+
+#### Phase 4: バッチ自動化
+```bash
+# 03_batch_automation.mdを実行
+# - バッチスケジューリング・自動化
+```
+
+#### Phase 5: Celery統合
+```bash
+# 04_celery_integration.mdを実行
+# - Celery統合設定
+```
+
+#### Phase 6: サービス統合
+```bash
+# 05_service_integration.mdを実行
+# - サービス間連携設定
+```
+
+### 3. 動作確認
+```bash
+# システム全体の起動
+scripts/docker-dev.sh up
+
+# 各サービスの確認
+curl http://localhost:8000/health
+curl http://localhost:5555  # Flower
+curl http://localhost:8000/api/papers/search?q=test
+
+# 完全フローのテスト
+curl -X POST http://localhost:8000/api/papers/crawl \
+  -H "Content-Type: application/json" \
+  -d '{"paper_url": "https://example.com/paper"}'
+```
+
+### 4. レビュー・品質確認
+```bash
+# コード品質チェック
+moon :check
+
+# パフォーマンステスト
+locust -f tests/load_test.py --host=http://localhost:8000
+```
 
 ## 完了条件
 
@@ -70,6 +167,18 @@ graph TD
 - [ ] 自動要約生成スケジューリング
 - [ ] データバックアップ自動化
 - [ ] システムヘルスチェック自動化
+
+### Celery統合条件
+- [ ] 統一Celeryアプリケーションが全サービスで使用されている
+- [ ] Celery Beat・Flowerが正常に動作している
+- [ ] タスクルーティングが適切に設定されている
+- [ ] 定期実行タスクが正しい間隔で実行されている
+
+### サービス間連携条件
+- [ ] APIエンドポイントから論文クロールをトリガーできる
+- [ ] 各サービスが正しい順序でタスクを連携している
+- [ ] エラー時のリトライ機構が動作している
+- [ ] エンドツーエンドの処理フローが完全に動作している
 
 
 ## 必要なスキル・知識
@@ -178,6 +287,22 @@ graph TD
 - [ ] サービス間の通信が安全かつ効率的である
 - [ ] スケーラビリティが考慮された設計になっている
 - [ ] 単一障害点が排除されている
+
+### Celery統合設定のレビュー観点
+- [ ] **技術的正確性**: Celery設定の整合性、タスクルーティング、スケジュール設定
+- [ ] **パフォーマンス**: ワーカー設定、タスク有効期限、実行時間制限
+- [ ] **セキュリティ**: 認証情報、環境変数、ネットワーク分離
+- [ ] **エラーハンドリング**: リトライ機構、エラーログ、監視機能
+- [ ] **保守性**: ログ出力、設定の外部化、Docker設定
+- [ ] **データ整合性**: トランザクション、重複処理防止、データ競合
+
+### サービス間連携のレビュー観点
+- [ ] **通信の正確性**: APIエンドポイント、タスク送信、非同期処理
+- [ ] **データ整合性**: トランザクション、重複処理防止、外部キー制約
+- [ ] **耐障害性**: リトライ機構、例外処理、タイムアウト処理
+- [ ] **パフォーマンス**: 並列処理、メモリ使用量、クエリ最適化
+- [ ] **セキュリティ**: 入力検証、SQLインジェクション防止、認証・認可
+- [ ] **監視・可観測性**: 構造化ログ、メトリクス、分散トレーシング
 
 ### 運用準備状況
 - [ ] 監視・アラートシステムが包括的である
@@ -461,6 +586,21 @@ performance_criteria:
 
 4. **バッチ処理実行失敗**
    - 解決策: Celery Beat設定、タスクキュー状況を確認
+
+5. **Celery統合問題**
+   - 解決策: 統一Celeryアプリケーションの設定、タスクルーティングを確認
+   - 確認コマンド: `celery -A refnet_shared.celery_app inspect registered`
+
+6. **サービス間連携失敗**
+   - 解決策: タスク送信の引数、キューの設定、エラーハンドリングを確認
+   - 確認コマンド: `docker-compose logs -f crawler summarizer generator`
+
+7. **Flower認証失敗**
+   - 解決策: 環境変数 `FLOWER_USER`、`FLOWER_PASSWORD` を確認
+
+8. **タスクが実行されない**
+   - 解決策: Celery Beat スケジュール、ワーカーの起動状況を確認
+   - 確認コマンド: `celery -A refnet_shared.celery_app inspect active`
 
 ### ヘルプリソース
 
