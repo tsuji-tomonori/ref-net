@@ -27,37 +27,34 @@ RefNetシステムの本番運用に必要なインフラストラクチャ、�
 
 ```mermaid
 graph TD
-    A[Phase 3 完了] --> C[02_security_configuration]
-    C --> E[04_celery_integration]
-    E --> F[03_batch_automation]
-    E --> G[05_service_integration]
-
-    A --> B[00_docker_setup]
-    B --> D[01_monitoring_observability]
-
-    F --> H[Phase 4 完了]
-    G --> H
-    B --> H
-    D --> H
+    A[Phase 3 完了] --> B[00_docker_setup]
+    B --> C[01_monitoring_observability]
+    C --> D[02_security_configuration]
+    D --> E[03_batch_automation]
+    E --> F[04_celery_integration]
+    F --> G[05_service_integration]
+    G --> H[Phase 4 完了]
 ```
 
-### 推奨実行順序（最新）
+### 推奨実行順序
 
-1. **02_security_configuration.md**（最優先）
-   - APIエンドポイントの認証基盤
-   - 他のサービスがAPIを呼び出す際の前提条件
+1. **00_docker_setup.md**
+   - Docker Compose・コンテナオーケストレーション
 
-2. **04_celery_integration.md**
-   - 統一Celeryアプリケーション構築
-   - Beat・Flowerの統合設定
+2. **01_monitoring_observability.md**
+   - 監視・ログ・メトリクス
 
-3. **03_batch_automation.md**
-   - 統一Celeryアプリ上での定期タスク実装
-   - 具体的なスケジュール設定
+3. **02_security_configuration.md**
+   - セキュリティ・認証・認可
 
-4. **05_service_integration.md**（最終）
-   - 全サービスの統合とエンドツーエンド処理
-   - 認証・Celery・バッチ処理が必要
+4. **03_batch_automation.md**
+   - バッチスケジューリング・自動化
+
+5. **04_celery_integration.md**
+   - Celery統合設定
+
+6. **05_service_integration.md**
+   - サービス間連携設定
 
 ## 実施者
 
@@ -81,36 +78,40 @@ cp .env.example .env
 
 ### 2. 実行フロー
 
-#### Phase 1: セキュリティ設定
+#### Phase 1: Docker設定
+```bash
+# 00_docker_setup.mdを実行
+# - Docker Compose・コンテナオーケストレーション
+```
+
+#### Phase 2: 監視設定
+```bash
+# 01_monitoring_observability.mdを実行
+# - 監視・ログ・メトリクス
+```
+
+#### Phase 3: セキュリティ設定
 ```bash
 # 02_security_configuration.mdを実行
-# - JWT認証システムの実装
-# - APIセキュリティ設定
-# - レート制限の設定
+# - セキュリティ・認証・認可
 ```
 
-#### Phase 2: Celery統合
-```bash
-# 04_celery_integration.mdを実行
-# - 統一Celeryアプリケーションの実装
-# - Beat・Flowerの設定
-# - タスクルーティングの設定
-```
-
-#### Phase 3: バッチ自動化
+#### Phase 4: バッチ自動化
 ```bash
 # 03_batch_automation.mdを実行
-# - 定期実行タスクの実装
-# - スケジュール設定
-# - バックアップ自動化
+# - バッチスケジューリング・自動化
 ```
 
-#### Phase 4: サービス統合
+#### Phase 5: Celery統合
+```bash
+# 04_celery_integration.mdを実行
+# - Celery統合設定
+```
+
+#### Phase 6: サービス統合
 ```bash
 # 05_service_integration.mdを実行
-# - エンドツーエンド処理フローの実装
-# - サービス間連携の設定
-# - 統合テストの実行
+# - サービス間連携設定
 ```
 
 ### 3. 動作確認
