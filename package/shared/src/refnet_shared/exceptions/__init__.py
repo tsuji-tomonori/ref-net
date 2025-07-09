@@ -35,3 +35,9 @@ class ValidationError(RefNetException):
     """検証エラー."""
 
     pass
+
+
+class SecurityError(RefNetException):
+    """セキュリティエラー."""
+
+    pass

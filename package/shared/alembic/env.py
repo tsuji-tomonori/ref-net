@@ -1,18 +1,18 @@
 """Alembic環境設定."""
 
-import asyncio
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.asyncio import AsyncEngine
-from alembic import context
 import os
 import sys
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # プロジェクトルートをpathに追加
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from src.refnet_shared.models.database import Base
 from src.refnet_shared.config.environment import load_environment_settings
+from src.refnet_shared.models.database import Base
 
 # Alembic Configオブジェクト
 config = context.config
