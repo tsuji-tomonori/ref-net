@@ -1,9 +1,10 @@
 """アプリケーションメトリクス."""
 
 import time
+from typing import Any
 
 import structlog
-from prometheus_client import Counter, Gauge, Histogram, generate_latest
+from prometheus_client import Counter, Gauge, Histogram, generate_latest  # type: ignore[import-not-found]
 
 logger = structlog.get_logger(__name__)
 
@@ -59,7 +60,7 @@ class MetricsCollector:
         REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
 
     @staticmethod
-    def track_task(task_name: str, state: str, duration: float = None) -> None:
+    def track_task(task_name: str, state: str, duration: float | None = None) -> None:
         """Celeryタスクメトリクス記録."""
         TASK_COUNT.labels(task_name=task_name, state=state).inc()
         if duration is not None:
@@ -82,24 +83,24 @@ class MetricsCollector:
     @staticmethod
     def get_metrics() -> bytes:
         """Prometheusメトリクス取得."""
-        return generate_latest()
+        return generate_latest()  # type: ignore[no-any-return]
 
 
 # FastAPI用ミドルウェア
 class PrometheusMiddleware:
     """Prometheusメトリクス収集ミドルウェア."""
 
-    def __init__(self, app):
+    def __init__(self, app: Any) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
         start_time = time.time()
 
-        async def send_wrapper(message):
+        async def send_wrapper(message: dict[str, Any]) -> None:
             if message["type"] == "http.response.start":
                 status_code = message["status"]
                 duration = time.time() - start_time
