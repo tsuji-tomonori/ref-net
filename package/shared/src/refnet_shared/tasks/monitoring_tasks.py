@@ -15,12 +15,12 @@ logger = structlog.get_logger(__name__)
 class MonitoringTask(Task):
     """監視機能付きタスク基底クラス."""
 
-    def on_success(self, retval, task_id, args, kwargs):
+    def on_success(self, retval: Any, task_id: str, args: Any, kwargs: Any) -> None:
         """タスク成功時の監視メトリクス更新."""
         MetricsCollector.track_task(self.name, "SUCCESS")
         logger.info("Task completed", task_name=self.name, task_id=task_id)
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: Any, kwargs: Any, einfo: Any) -> None:
         """タスク失敗時の監視メトリクス更新."""
         MetricsCollector.track_task(self.name, "FAILURE")
         logger.error("Task failed", task_name=self.name, task_id=task_id, error=str(exc))
@@ -39,7 +39,7 @@ class MonitoringTask(Task):
 
 
 # 既存のタスクを監視機能付きに変更
-@celery_app.task(base=MonitoringTask, name="refnet.scheduled.critical_system_check")
+@celery_app.task(base=MonitoringTask, name="refnet.scheduled.critical_system_check")  # type: ignore[misc]
 def critical_system_check() -> dict[str, Any]:
     """重要なシステムチェック."""
     logger.info("Starting critical system check")

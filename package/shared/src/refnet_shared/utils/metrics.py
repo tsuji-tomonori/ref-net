@@ -4,7 +4,7 @@ import time
 from typing import Any
 
 import structlog
-from prometheus_client import Counter, Gauge, Histogram, generate_latest  # type: ignore[import-not-found]
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 logger = structlog.get_logger(__name__)
 
@@ -57,7 +57,7 @@ class MetricsCollector:
     @staticmethod
     def get_metrics() -> bytes:
         """Prometheusメトリクス取得."""
-        return generate_latest()  # type: ignore[no-any-return]
+        return generate_latest()
 
 
 # FastAPI用ミドルウェア

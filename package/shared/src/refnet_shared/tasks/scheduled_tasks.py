@@ -21,16 +21,16 @@ logger = structlog.get_logger(__name__)
 class CallbackTask(Task):
     """コールバック付きタスク基底クラス."""
 
-    def on_success(self, retval, task_id, args, kwargs):
+    def on_success(self, retval: Any, task_id: str, args: Any, kwargs: Any) -> None:
         """タスク成功時のコールバック."""
         logger.info("Task completed successfully", task_id=task_id, task_name=self.name)
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: Any, kwargs: Any, einfo: Any) -> None:
         """タスク失敗時のコールバック."""
         logger.error("Task failed", task_id=task_id, task_name=self.name, error=str(exc))
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.collect_new_papers")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.collect_new_papers")  # type: ignore[misc]
 def collect_new_papers(max_papers: int = 100) -> dict[str, Any]:
     """新しい論文の収集."""
     logger.info("Starting scheduled paper collection", max_papers=max_papers)
@@ -45,7 +45,7 @@ def collect_new_papers(max_papers: int = 100) -> dict[str, Any]:
             for paper in pending_papers:
                 # クローラータスクをキューに追加
                 try:
-                    from refnet_crawler.tasks import crawl_paper_task
+                    from refnet_crawler.tasks import crawl_paper_task  # type: ignore[import-not-found]
 
                     crawl_paper_task.delay(paper.paper_id)
                     collected_count += 1
@@ -62,7 +62,7 @@ def collect_new_papers(max_papers: int = 100) -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.process_pending_summaries")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.process_pending_summaries")  # type: ignore[misc]
 def process_pending_summaries(batch_size: int = 50) -> dict[str, Any]:
     """未要約論文の処理."""
     logger.info("Starting scheduled summarization", batch_size=batch_size)
@@ -82,7 +82,7 @@ def process_pending_summaries(batch_size: int = 50) -> dict[str, Any]:
             for paper in papers_to_summarize:
                 # 要約タスクをキューに追加
                 try:
-                    from refnet_summarizer.tasks import summarize_paper_task
+                    from refnet_summarizer.tasks import summarize_paper_task  # type: ignore[import-not-found]
 
                     summarize_paper_task.delay(paper.paper_id)
                     processed_count += 1
@@ -99,7 +99,7 @@ def process_pending_summaries(batch_size: int = 50) -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.generate_markdown_files")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.generate_markdown_files")  # type: ignore[misc]
 def generate_markdown_files(batch_size: int = 100) -> dict[str, Any]:
     """Markdownファイルの生成."""
     logger.info("Starting scheduled markdown generation", batch_size=batch_size)
@@ -114,7 +114,7 @@ def generate_markdown_files(batch_size: int = 100) -> dict[str, Any]:
             for paper in papers_to_generate:
                 # 生成タスクをキューに追加
                 try:
-                    from refnet_generator.tasks import generate_markdown_task
+                    from refnet_generator.tasks import generate_markdown_task  # type: ignore[import-not-found]
 
                     generate_markdown_task.delay(paper.paper_id)
                     generated_count += 1
@@ -131,7 +131,7 @@ def generate_markdown_files(batch_size: int = 100) -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.database_maintenance")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.database_maintenance")  # type: ignore[misc]
 def database_maintenance() -> dict[str, Any]:
     """データベースメンテナンス."""
     logger.info("Starting scheduled database maintenance")
@@ -170,13 +170,13 @@ def database_maintenance() -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.system_health_check")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.system_health_check")  # type: ignore[misc]
 def system_health_check() -> dict[str, Any]:
     """システムヘルスチェック."""
     logger.info("Starting system health check")
 
     try:
-        health_status = {"timestamp": datetime.utcnow().isoformat(), "services": {}, "metrics": {}, "overall_status": "healthy"}
+        health_status: dict[str, Any] = {"timestamp": datetime.utcnow().isoformat(), "services": {}, "metrics": {}, "overall_status": "healthy"}
 
         with db_manager.get_session() as session:
             # データベース接続チェック
@@ -209,7 +209,7 @@ def system_health_check() -> dict[str, Any]:
             }
 
             # メトリクスの更新
-            status_counts = {"crawl": {}, "summary": {}, "pdf": {}}
+            status_counts: dict[str, dict[str, int]] = {"crawl": {}, "summary": {}, "pdf": {}}
 
             for status_type in status_counts.keys():
                 column = getattr(Paper, f"{status_type}_status")
@@ -228,7 +228,7 @@ def system_health_check() -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.cleanup_old_logs")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.cleanup_old_logs")  # type: ignore[misc]
 def cleanup_old_logs(days_to_keep: int = 30) -> dict[str, Any]:
     """古いログのクリーンアップ."""
     logger.info("Starting log cleanup", days_to_keep=days_to_keep)
@@ -268,7 +268,7 @@ def cleanup_old_logs(days_to_keep: int = 30) -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.backup_database")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.backup_database")  # type: ignore[misc]
 def backup_database() -> dict[str, Any]:
     """データベースバックアップ."""
     logger.info("Starting database backup")
@@ -299,7 +299,7 @@ def backup_database() -> dict[str, Any]:
         ]
 
         env = os.environ.copy()
-        env["PGPASSWORD"] = settings.database.password
+        env["PGPASSWORD"] = settings.database.password or ""
 
         result = subprocess.run(cmd, env=env, capture_output=True, text=True)
 
@@ -319,7 +319,7 @@ def backup_database() -> dict[str, Any]:
         return {"status": "error", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(base=CallbackTask, name="refnet.scheduled.generate_stats_report")
+@celery_app.task(base=CallbackTask, name="refnet.scheduled.generate_stats_report")  # type: ignore[misc]
 def generate_stats_report() -> dict[str, Any]:
     """統計レポート生成."""
     logger.info("Starting stats report generation")

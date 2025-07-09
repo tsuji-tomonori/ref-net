@@ -1,5 +1,7 @@
 """Celery アプリケーション設定."""
 
+from typing import Any
+
 import structlog
 from celery import Celery
 from celery.schedules import crontab
@@ -74,7 +76,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True)
-def debug_task(self):
+@celery_app.task(bind=True)  # type: ignore[misc]
+def debug_task(self: Any) -> None:
     """デバッグタスク."""
     print(f"Request: {self.request!r}")
