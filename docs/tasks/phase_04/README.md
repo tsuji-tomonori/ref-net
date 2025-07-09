@@ -27,16 +27,18 @@ RefNetシステムの本番運用に必要なインフラストラクチャ、�
 
 ```mermaid
 graph TD
-    A[Phase 3 完了] --> B[00_docker_setup]
-    A --> C[02_security_configuration]
-    B --> D[01_monitoring_observability]
+    A[Phase 3 完了] --> C[02_security_configuration]
     C --> E[04_celery_integration]
     E --> F[03_batch_automation]
     E --> G[05_service_integration]
-    B --> H[Phase 4 完了]
-    D --> H
-    F --> H
+
+    A --> B[00_docker_setup]
+    B --> D[01_monitoring_observability]
+
+    F --> H[Phase 4 完了]
     G --> H
+    B --> H
+    D --> H
 ```
 
 ### 推奨実行順序（最新）
