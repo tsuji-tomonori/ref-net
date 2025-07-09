@@ -10,7 +10,7 @@ client = TestClient(app)
 class TestAuthEndpoints:
     """認証エンドポイントテスト."""
 
-    def test_login_success(self):
+    def test_login_success(self) -> None:
         """ログイン成功テスト."""
         response = client.post("/api/auth/login", json={
             "username": "admin",
@@ -22,7 +22,7 @@ class TestAuthEndpoints:
         assert "refresh_token" in data
         assert data["token_type"] == "bearer"
 
-    def test_login_invalid_credentials(self):
+    def test_login_invalid_credentials(self) -> None:
         """ログイン失敗テスト."""
         response = client.post("/api/auth/login", json={
             "username": "admin",
@@ -31,7 +31,7 @@ class TestAuthEndpoints:
         assert response.status_code == 401
         assert "Incorrect username or password" in response.json()["detail"]
 
-    def test_login_user_not_found(self):
+    def test_login_user_not_found(self) -> None:
         """ユーザー存在しないテスト."""
         response = client.post("/api/auth/login", json={
             "username": "nonexistent",
@@ -40,12 +40,12 @@ class TestAuthEndpoints:
         assert response.status_code == 401
         assert "Incorrect username or password" in response.json()["detail"]
 
-    def test_me_endpoint_without_token(self):
+    def test_me_endpoint_without_token(self) -> None:
         """認証なしでmeエンドポイントアクセス."""
         response = client.get("/api/auth/me")
         assert response.status_code == 403
 
-    def test_me_endpoint_with_token(self):
+    def test_me_endpoint_with_token(self) -> None:
         """認証ありでmeエンドポイントアクセス."""
         # まずログイン
         login_response = client.post("/api/auth/login", json={
@@ -63,7 +63,7 @@ class TestAuthEndpoints:
         assert data["username"] == "admin"
         assert "admin" in data["roles"]
 
-    def test_refresh_token_success(self):
+    def test_refresh_token_success(self) -> None:
         """リフレッシュトークン成功テスト."""
         # まずログイン
         login_response = client.post("/api/auth/login", json={
@@ -81,14 +81,14 @@ class TestAuthEndpoints:
         assert "access_token" in data
         assert "refresh_token" in data
 
-    def test_refresh_token_invalid(self):
+    def test_refresh_token_invalid(self) -> None:
         """リフレッシュトークン失敗テスト."""
         response = client.post("/api/auth/refresh", json={
             "refresh_token": "invalid_token"
         })
         assert response.status_code == 401
 
-    def test_logout_success(self):
+    def test_logout_success(self) -> None:
         """ログアウト成功テスト."""
         # まずログイン
         login_response = client.post("/api/auth/login", json={
@@ -104,7 +104,7 @@ class TestAuthEndpoints:
         assert response.status_code == 200
         assert "Successfully logged out" in response.json()["message"]
 
-    def test_logout_without_token(self):
+    def test_logout_without_token(self) -> None:
         """認証なしでログアウト."""
         response = client.post("/api/auth/logout")
         assert response.status_code == 403

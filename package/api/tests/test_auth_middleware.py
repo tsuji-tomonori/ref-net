@@ -1,18 +1,23 @@
 """認証ミドルウェアテスト."""
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException
 
-from refnet_api.middleware.auth import get_current_user, require_permissions, require_roles
+from refnet_api.middleware.auth import (
+    get_current_user,
+    require_permissions,
+    require_roles,
+)
 
 
 class TestAuthMiddleware:
     """認証ミドルウェアテスト."""
 
     @patch("refnet_api.middleware.auth.jwt_handler")
-    def test_get_current_user_success(self, mock_jwt_handler):
+    def test_get_current_user_success(self, mock_jwt_handler: Any) -> None:
         """現在のユーザー取得成功テスト."""
         mock_jwt_handler.verify_token.return_value = {
             "sub": "test_user",
@@ -30,7 +35,7 @@ class TestAuthMiddleware:
         assert result["permissions"] == ["read", "write"]
 
     @patch("refnet_api.middleware.auth.jwt_handler")
-    def test_get_current_user_invalid_token(self, mock_jwt_handler):
+    def test_get_current_user_invalid_token(self, mock_jwt_handler: Any) -> None:
         """無効なトークンでのユーザー取得テスト."""
         from refnet_api.middleware.auth import SecurityError
         mock_jwt_handler.verify_token.side_effect = SecurityError("Invalid token")
@@ -43,7 +48,7 @@ class TestAuthMiddleware:
 
         assert exc_info.value.status_code == 401
 
-    def test_require_roles_success(self):
+    def test_require_roles_success(self) -> None:
         """ロール確認成功テスト."""
         user = {
             "user_id": "test_user",
@@ -56,7 +61,7 @@ class TestAuthMiddleware:
 
         assert result == user
 
-    def test_require_roles_failure(self):
+    def test_require_roles_failure(self) -> None:
         """ロール確認失敗テスト."""
         user = {
             "user_id": "test_user",
@@ -71,7 +76,7 @@ class TestAuthMiddleware:
 
         assert exc_info.value.status_code == 403
 
-    def test_require_permissions_success(self):
+    def test_require_permissions_success(self) -> None:
         """権限確認成功テスト."""
         user = {
             "user_id": "test_user",
@@ -84,7 +89,7 @@ class TestAuthMiddleware:
 
         assert result == user
 
-    def test_require_permissions_failure(self):
+    def test_require_permissions_failure(self) -> None:
         """権限確認失敗テスト."""
         user = {
             "user_id": "test_user",
