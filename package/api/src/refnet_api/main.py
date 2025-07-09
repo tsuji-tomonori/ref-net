@@ -73,7 +73,9 @@ async def health_check() -> HealthResponse:
         redis_health = {"status": "unhealthy", "error": str(e)}
 
     # 全体のヘルスステータス決定
-    overall_status = "healthy" if db_health["status"] == "healthy" and redis_health["status"] == "healthy" else "unhealthy"
+    db_healthy = db_health["status"] == "healthy"
+    redis_healthy = redis_health["status"] == "healthy"
+    overall_status = "healthy" if db_healthy and redis_healthy else "unhealthy"
 
     return HealthResponse(
         status=overall_status,
