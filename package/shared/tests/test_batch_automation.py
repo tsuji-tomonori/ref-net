@@ -181,3 +181,94 @@ class TestBatchAutomation:
         # ワーカー設定
         assert config.worker_prefetch_multiplier == 1
         assert config.worker_max_tasks_per_child == 1000
+
+    def test_debug_task(self):
+        """デバッグタスクテスト."""
+        from refnet_shared.celery_app import debug_task
+
+        celery_app.conf.task_always_eager = True
+
+        # デバッグタスクが例外を発生させないことを確認
+        try:
+            result = debug_task.delay()
+            assert result.successful()
+        except Exception as e:
+            pytest.fail(f"debug_task failed: {e}")
+
+    def test_monitoring_tasks_import(self):
+        """監視タスクのインポートテスト."""
+        try:
+            from refnet_shared.tasks.monitoring_tasks import MonitoringTask, critical_system_check
+            assert MonitoringTask is not None
+            assert critical_system_check is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import monitoring tasks: {e}")
+
+    def test_cli_batch_import(self):
+        """CLIバッチのインポートテスト."""
+        try:
+            from refnet_shared.cli_batch import batch
+            assert batch is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import CLI batch: {e}")
+
+    def test_metrics_import(self):
+        """メトリクスのインポートテスト."""
+        try:
+            from refnet_shared.utils.metrics import MetricsCollector
+            assert MetricsCollector is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import metrics: {e}")
+
+    def test_metrics_track_task(self):
+        """メトリクスタスク追跡テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # メトリクス追跡が例外を発生させないことを確認
+        try:
+            MetricsCollector.track_task("test_task", "SUCCESS", 1.0)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.track_task failed: {e}")
+
+    def test_metrics_track_request(self):
+        """メトリクスリクエスト追跡テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # メトリクス追跡が例外を発生させないことを確認
+        try:
+            MetricsCollector.track_request("GET", "/test", 200, 0.5)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.track_request failed: {e}")
+
+    def test_metrics_update_paper_counts(self):
+        """メトリクス論文数更新テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # メトリクス更新が例外を発生させないことを確認
+        try:
+            status_counts = {
+                "crawl": {"pending": 10, "completed": 5, "failed": 1},
+                "summary": {"pending": 8, "completed": 3, "failed": 0}
+            }
+            MetricsCollector.update_paper_counts(100, status_counts)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.update_paper_counts failed: {e}")
+
+    def test_metrics_get_metrics(self):
+        """メトリクス取得テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # メトリクス取得が例外を発生させないことを確認
+        try:
+            metrics = MetricsCollector.get_metrics()
+            assert isinstance(metrics, bytes)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.get_metrics failed: {e}")
+
+    def test_prometheus_middleware_import(self):
+        """Prometheusミドルウェアのインポートテスト."""
+        try:
+            from refnet_shared.utils.metrics import PrometheusMiddleware
+            assert PrometheusMiddleware is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import PrometheusMiddleware: {e}")
