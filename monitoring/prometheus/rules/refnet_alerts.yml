@@ -1,0 +1,87 @@
+groups:
+  - name: refnet_alerts
+    rules:
+      # API サービスアラート
+      - alert: APIServiceDown
+        expr: up{job="refnet-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RefNet API service is down"
+          description: "API service has been down for more than 1 minute"
+
+      - alert: HighAPIResponseTime
+        expr: http_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # データベースアラート
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database has been unreachable for more than 30 seconds"
+
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection count"
+          description: "Database has {{ $value }} active connections"
+
+      # システムリソースアラート
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}%"
+
+      # Celeryワーカーアラート
+      - alert: CeleryWorkerDown
+        expr: flower_workers{state="ONLINE"} < 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery worker is down"
+          description: "No online Celery workers detected"
+
+      - alert: HighTaskFailureRate
+        expr: rate(celery_task_total{state="FAILURE"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High task failure rate"
+          description: "Task failure rate is {{ $value }} tasks/sec"
