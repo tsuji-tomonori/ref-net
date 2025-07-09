@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 開発時の追加設定
+  api:
+    volumes:
+      - ./package/api/src:/app/src
+    environment:
+      - DEBUG=true
+    command: uvicorn refnet_api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  crawler-worker:
+    volumes:
+      - ./package/crawler/src:/app/src
+
+  summarizer-worker:
+    volumes:
+      - ./package/summarizer/src:/app/src
+
+  generator-worker:
+    volumes:
+      - ./package/generator/src:/app/src
+
+  # 開発用データベース管理ツール
+  adminer:
+    image: adminer
+    container_name: refnet-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - refnet
