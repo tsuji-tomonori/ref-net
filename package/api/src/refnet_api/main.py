@@ -10,7 +10,7 @@ from refnet_shared.config.environment import load_environment_settings
 from refnet_shared.utils import setup_logging
 
 from refnet_api.responses import HealthResponse, MessageResponse
-from refnet_api.routers import authors, papers, queue
+from refnet_api.routers import auth, authors, papers, queue
 
 # 設定とロギング設定
 settings = load_environment_settings()
@@ -44,6 +44,7 @@ app.add_middleware(
 )
 
 # ルーター登録
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(papers.router, prefix="/api/v1/papers", tags=["papers"])
 app.include_router(authors.router, prefix="/api/v1/authors", tags=["authors"])
 app.include_router(queue.router, prefix="/api/v1/queue", tags=["queue"])

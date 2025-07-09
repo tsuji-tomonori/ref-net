@@ -42,12 +42,12 @@ def test_summarize_paper_task_failure():  # type: ignore
     # ロガーとstructlogをモック化して警告を回避
     with patch('refnet_summarizer.tasks.logger') as mock_logger:
         with patch('structlog.get_logger', return_value=mock_logger):
-            # 内部関数をモック化してコルーチンを回避
-            async def mock_summarize():
+            # asyncio.runを同期関数でモック化
+            def mock_run(coro):
                 raise Exception("Test error")
 
-            # asyncio.runをモック化してコルーチンを実行
-            with patch('asyncio.run', side_effect=Exception("Test error")):
+            # asyncio.runをモック化
+            with patch('asyncio.run', side_effect=mock_run):
                 # Celeryタスクのretryメカニズムは複雑なのでモック化
                 with patch.object(
                     summarize_paper_task, 'retry', side_effect=Exception("Retry")
@@ -106,7 +106,10 @@ def test_celery_app_configuration():  # type: ignore
 def test_summarize_paper_task_exception_in_service():  # type: ignore
     """サービス内で例外が発生した場合のテスト."""
 
-    with patch('asyncio.run', side_effect=Exception("Service error")):  # type: ignore
+    def mock_run(coro):
+        raise Exception("Service error")
+
+    with patch('asyncio.run', side_effect=mock_run):
         with patch.object(
             summarize_paper_task, 'retry', side_effect=Exception("Retry")
         ):  # type: ignore
@@ -115,23 +118,20 @@ def test_summarize_paper_task_exception_in_service():  # type: ignore
 
 
 def test_batch_summarize_task_multiple_papers():  # type: ignore
-    """複数論文のバッチ要約テスト."""
+    """複数論文のバッチ要約テスト。"""
     paper_ids = ["paper-1", "paper-2", "paper-3", "paper-4", "paper-5"]
 
-    # ロガーとstructlogをモック化して警告を回避
-    with patch('refnet_summarizer.tasks.logger') as mock_logger:
-        with patch('structlog.get_logger', return_value=mock_logger):
-            with patch.object(summarize_paper_task, 'delay') as mock_delay:
-                mock_task = MagicMock()
-                mock_task.id = "task-id"
-                mock_delay.return_value = mock_task
+    with patch.object(summarize_paper_task, 'delay') as mock_delay:
+        mock_task = MagicMock()
+        mock_task.id = "task-id"
+        mock_delay.return_value = mock_task
 
-                result = batch_summarize_task(paper_ids)
+        result = batch_summarize_task(paper_ids)
 
-                assert len(result) == 5
-                for paper_id in paper_ids:
-                    assert result[paper_id] == "task-id"
-                assert mock_delay.call_count == 5
+        assert len(result) == 5
+        for paper_id in paper_ids:
+            assert result[paper_id] == "task-id"
+        assert mock_delay.call_count == 5
 
 
 def test_batch_summarize_task_empty_list():  # type: ignore
@@ -152,17 +152,17 @@ def test_summarize_paper_task_with_settings():  # type: ignore
     # 設定が正しく読み込まれていることを確認
     assert settings is not None
 
-    # ロガーをモック化
-    with patch('refnet_summarizer.tasks.logger') as mock_logger:
-        with patch('structlog.get_logger', return_value=mock_logger):
-            with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
-                mock_service = AsyncMock()
-                mock_service_class.return_value = mock_service
-                mock_service.summarize_paper.return_value = True
+    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
+        mock_service = AsyncMock()
+        mock_service_class.return_value = mock_service
+        mock_service.summarize_paper.return_value = True
 
-                with patch('asyncio.run') as mock_run:
-                    mock_run.return_value = True
+        # asyncio.runを同期関数でモック化
+        def mock_run(coro):
+            return True
 
-                    result = summarize_paper_task("test-paper-123")
+        with patch('asyncio.run', side_effect=mock_run) as mock_run_patch:
+            result = summarize_paper_task("test-paper-123")
 
-                    assert result is True
+            assert result is True
+            mock_run_patch.assert_called_once()

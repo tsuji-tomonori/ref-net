@@ -85,9 +85,6 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/refnet_api"]
 
-[tool.uv.sources]
-refnet-shared = { path = "../shared" }
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -118,3 +115,6 @@ exclude_lines = [
 show_missing = true
 skip_covered = false
 precision = 2
+
+[tool.uv.sources]
+refnet-shared = { path = "../shared" }
