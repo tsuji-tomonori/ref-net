@@ -88,6 +88,14 @@ services:
       retries: 3
     volumes:
       - ./output:/app/output
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - refnet
 
@@ -110,6 +118,13 @@ services:
         condition: service_healthy
     deploy:
       replicas: 2
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - refnet
 
