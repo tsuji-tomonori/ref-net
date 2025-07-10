@@ -104,7 +104,6 @@ services:
     build:
       context: ./package/crawler
       dockerfile: Dockerfile
-    container_name: refnet-crawler
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DATABASE__HOST: postgres
