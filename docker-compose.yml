@@ -192,7 +192,7 @@ services:
     volumes:
       - celery_beat_data:/app/celerybeat
     healthcheck:
-      test: ["CMD-SHELL", "celery -A refnet_shared.celery_app inspect ping"]
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'celery beat' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

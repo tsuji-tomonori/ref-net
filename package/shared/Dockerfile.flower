@@ -18,10 +18,15 @@ COPY src/ ./src/
 # 環境変数
 ENV PYTHONPATH=/app/src
 
+# 非rootユーザーの作成
+RUN useradd -m -u 1000 flower && \
+    chown -R flower:flower /app
+
+# ユーザー切り替え
+USER flower
+
 # Flower用ポート
 EXPOSE 5555
 
-# 起動コマンド（認証付き）
-CMD ["celery", "-A", "refnet_shared.celery_app", "flower", \
-     "--port=5555", \
-     "--basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"]
+# 起動コマンド（認証付き、環境変数を正しく展開）
+ENTRYPOINT ["sh", "-c", "celery -A refnet_shared.celery_app flower --port=5555 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"]
