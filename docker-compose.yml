@@ -104,7 +104,6 @@ services:
     build:
       context: ./package/crawler
       dockerfile: Dockerfile
-    container_name: refnet-crawler
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DATABASE__HOST: postgres
@@ -184,33 +183,65 @@ services:
       DATABASE__HOST: postgres
       DATABASE__PASSWORD: ${DATABASE_PASSWORD:-refnet_password}
       REDIS__HOST: redis
-    command: celery -A refnet_shared.celery_app beat --loglevel=info
+      CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - celery_beat_data:/app/celerybeat
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'celery beat' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
     networks:
       - refnet
 
   # 監視用 Flower (Celeryモニタリング)
-  flower:
+  celery-flower:
     build:
       context: ./package/shared
       dockerfile: Dockerfile.flower
-    container_name: refnet-flower
+    container_name: refnet-celery-flower
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_USER: ${FLOWER_USER:-admin}
+      FLOWER_PASSWORD: ${FLOWER_PASSWORD:-secure_password}
     ports:
       - "5555:5555"
     depends_on:
       - redis
+      - celery-beat
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
     networks:
       - refnet
 
 volumes:
   postgres_data:
   redis_data:
+  celery_beat_data:
 
 networks:
   refnet:
