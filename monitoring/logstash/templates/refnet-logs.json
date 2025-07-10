@@ -1,0 +1,123 @@
+{
+  "index_patterns": ["refnet-logs-*"],
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "5s"
+      }
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "level": {
+          "type": "keyword"
+        },
+        "service": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text",
+          "analyzer": "standard"
+        },
+        "log_message": {
+          "type": "text",
+          "analyzer": "standard"
+        },
+        "logger": {
+          "type": "keyword"
+        },
+        "environment": {
+          "type": "keyword"
+        },
+        "env": {
+          "type": "keyword"
+        },
+        "http_status": {
+          "type": "integer"
+        },
+        "response_time": {
+          "type": "float"
+        },
+        "duration": {
+          "type": "float"
+        },
+        "user_id": {
+          "type": "keyword"
+        },
+        "request_id": {
+          "type": "keyword"
+        },
+        "correlation_id": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword"
+        },
+        "container_name": {
+          "type": "keyword"
+        },
+        "process": {
+          "type": "keyword"
+        },
+        "thread": {
+          "type": "keyword"
+        },
+        "exception": {
+          "type": "text"
+        },
+        "stack_trace": {
+          "type": "text"
+        },
+        "remote_addr": {
+          "type": "ip"
+        },
+        "user_agent": {
+          "type": "text"
+        },
+        "referer": {
+          "type": "keyword"
+        },
+        "bytes_sent": {
+          "type": "integer"
+        },
+        "request_method": {
+          "type": "keyword"
+        },
+        "request_uri": {
+          "type": "keyword"
+        },
+        "database": {
+          "type": "keyword"
+        },
+        "query": {
+          "type": "text"
+        },
+        "task_id": {
+          "type": "keyword"
+        },
+        "task_name": {
+          "type": "keyword"
+        },
+        "worker_id": {
+          "type": "keyword"
+        },
+        "paper_id": {
+          "type": "keyword"
+        },
+        "author_id": {
+          "type": "keyword"
+        },
+        "citation_count": {
+          "type": "integer"
+        },
+        "processing_time": {
+          "type": "float"
+        }
+      }
+    }
+  }
+}

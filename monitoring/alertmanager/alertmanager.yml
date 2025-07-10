@@ -1,33 +1,171 @@
 global:
   smtp_smarthost: 'localhost:587'
   smtp_from: 'alerts@refnet.local'
+  smtp_auth_username: 'alerts@refnet.local'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+# テンプレート定義
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
 
 route:
-  group_by: ['alertname']
+  group_by: ['alertname', 'severity']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: 'web.hook'
+  receiver: 'default'
+  routes:
+    # 重要度クリティカルのアラート
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 30m
+      routes:
+        # データベース関連のクリティカルアラート
+        - match_re:
+            alertname: '(DatabaseDown|BackupFailure|LowDiskSpace)'
+          receiver: 'database-critical'
+          continue: true
+        # セキュリティ関連のクリティカルアラート
+        - match_re:
+            alertname: '(UnauthorizedAPIAccess|SuspiciousActivityPattern)'
+          receiver: 'security-alerts'
+          continue: true
+
+    # 警告レベルのアラート
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 2h
+      routes:
+        # パフォーマンス関連の警告
+        - match_re:
+            alertname: '(HighCPUUsage|HighMemoryUsage|HighAPIResponseTime)'
+          receiver: 'performance-alerts'
+          continue: true
+        # Celery関連の警告
+        - match_re:
+            alertname: '(CeleryWorkerDown|HighTaskFailureRate|CeleryQueueBacklog)'
+          receiver: 'celery-alerts'
+          continue: true
 
 receivers:
-  - name: 'web.hook'
+  # デフォルトの受信者（Webhook）
+  - name: 'default'
     webhook_configs:
       - url: 'http://localhost:5001/alerts'
         send_resolved: true
+        http_config:
+          basic_auth:
+            username: '${WEBHOOK_USERNAME}'
+            password: '${WEBHOOK_PASSWORD}'
 
-  - name: 'email'
+  # クリティカルアラート（即座に通知）
+  - name: 'critical-alerts'
     email_configs:
       - to: 'admin@refnet.local'
-        subject: '[RefNet Alert] {{ .GroupLabels.alertname }}'
+        subject: '🚨 [RefNet CRITICAL] {{ .GroupLabels.alertname }}'
         body: |
+          CRITICAL ALERT - Immediate attention required!
+
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Started: {{ .StartsAt }}
+          {{ if .Labels.instance }}Instance: {{ .Labels.instance }}{{ end }}
+          {{ end }}
+
+          Please investigate immediately.
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts/critical'
+        send_resolved: true
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#refnet-alerts'
+        title: '🚨 RefNet Critical Alert'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ end }}
+        color: 'danger'
+
+  # データベース関連のクリティカルアラート
+  - name: 'database-critical'
+    email_configs:
+      - to: 'dba@refnet.local'
+        subject: '🗄️ [RefNet DB CRITICAL] {{ .GroupLabels.alertname }}'
+        body: |
+          Database Critical Alert!
+
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+          Check database status immediately.
+
+  # セキュリティアラート
+  - name: 'security-alerts'
+    email_configs:
+      - to: 'security@refnet.local'
+        subject: '🛡️ [RefNet SECURITY] {{ .GroupLabels.alertname }}'
+        body: |
+          Security Alert Detected!
+
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+          Investigate potential security incident.
+
+  # 警告レベルのアラート
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'ops@refnet.local'
+        subject: '⚠️ [RefNet WARNING] {{ .GroupLabels.alertname }}'
+        body: |
+          Warning Alert - Please review
+
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+  # パフォーマンス関連のアラート
+  - name: 'performance-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts/performance'
+        send_resolved: true
+
+  # Celery関連のアラート
+  - name: 'celery-alerts'
+    email_configs:
+      - to: 'celery@refnet.local'
+        subject: '🔄 [RefNet Celery] {{ .GroupLabels.alertname }}'
+        body: |
+          Celery System Alert
+
           {{ range .Alerts }}
           Alert: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
           {{ end }}
 
 inhibit_rules:
+  # クリティカルアラートが発生した場合、同じインスタンスの警告を抑制
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
     equal: ['alertname', 'instance']
+
+  # サービスダウンアラートが発生した場合、同じサービスの他のアラートを抑制
+  - source_match_re:
+      alertname: '.*Down'
+    target_match_re:
+      alertname: '.*'
+    equal: ['job', 'instance']
