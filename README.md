@@ -55,3 +55,35 @@
 | Phase 2 | [データベース](docs/tasks/phase_02/README.md) | モデル定義・マイグレーション |
 | Phase 3 | [サービス実装](docs/tasks/phase_03/README.md) | API・クローラー・要約・生成サービス |
 | Phase 4 | [運用基盤](docs/tasks/phase_04/README.md) | Docker・監視・セキュリティ・バッチ |
+
+## 🚀 クイックスタート
+
+### Docker環境での起動
+
+```bash
+# プロジェクトルートで実行
+docker-compose up -d
+
+# 各サービスの確認
+docker-compose ps
+```
+
+### 監視UI
+
+#### Flower (Celery監視)
+
+Celeryタスクキューの監視とデバッグには[Flower](https://flower.readthedocs.io/)を使用します。
+
+- **URL**: [http://localhost:5555](http://localhost:5555)
+- **認証**: Basic認証（初期値: admin / secure_password）
+- **機能**:
+  - タスクの実行状況確認
+  - ワーカーのステータス監視
+  - タスクの実行履歴とエラー情報
+  - Celery Beatスケジュールの確認
+
+認証情報は`.env`ファイルで変更可能です：
+```bash
+FLOWER_USER=your_username
+FLOWER_PASSWORD=your_secure_password
+```
