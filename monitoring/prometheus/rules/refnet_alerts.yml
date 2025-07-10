@@ -85,3 +85,142 @@ groups:
         annotations:
           summary: "High task failure rate"
           description: "Task failure rate is {{ $value }} tasks/sec"
+
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue backlog"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending tasks"
+
+      - alert: CeleryTaskTimeout
+        expr: celery_task_duration_seconds > 300
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery task timeout"
+          description: "Task {{ $labels.task }} is taking {{ $value }}s to complete"
+
+      - alert: CeleryBeatScheduleFailure
+        expr: rate(celery_beat_schedule_runs_total{state="FAILURE"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery Beat schedule failure"
+          description: "Scheduled task {{ $labels.task }} is failing"
+
+      # Redis アラート
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis service has been unreachable for more than 30 seconds"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high connection count"
+          description: "Redis has {{ $value }} connected clients"
+
+      # セキュリティアラート
+      - alert: UnauthorizedAPIAccess
+        expr: increase(http_requests_total{status=~"401|403"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unauthorized API access attempts"
+          description: "{{ $value }} unauthorized access attempts in the last 5 minutes"
+
+      - alert: DatabaseConnectionSpike
+        expr: increase(pg_stat_database_numbackends[5m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection spike"
+          description: "Database connections increased by {{ $value }} in 5 minutes"
+
+      - alert: SuspiciousActivityPattern
+        expr: increase(http_requests_total{status=~"4.."}[1m]) > 100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Suspicious activity pattern detected"
+          description: "{{ $value }} 4xx errors in the last minute"
+
+      # ビジネスロジックアラート
+      - alert: PaperProcessingFailure
+        expr: rate(celery_task_total{task=~".*paper.*", state="FAILURE"}[10m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Paper processing failure rate high"
+          description: "Paper processing tasks are failing at {{ $value }} tasks/sec"
+
+      - alert: ScrapingServiceDown
+        expr: up{job="refnet-crawler"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Paper scraping service is down"
+          description: "Crawler service has been unreachable for more than 2 minutes"
+
+      - alert: AIServiceResponseTime
+        expr: http_request_duration_seconds{job="refnet-summarizer", quantile="0.95"} > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI service slow response"
+          description: "AI summarization service 95th percentile response time is {{ $value }}s"
+
+      # データ整合性アラート
+      - alert: DatabaseReplicationLag
+        expr: pg_stat_replication_lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database replication lag"
+          description: "Database replication lag is {{ $value }}s"
+
+      - alert: BackupFailure
+        expr: time() - backup_last_success_timestamp > 86400
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup failure"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago"
+
+      - alert: LogVolumeAnomaly
+        expr: increase(log_entries_total[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Log volume anomaly"
+          description: "Log volume increased by {{ $value }} entries in 5 minutes"

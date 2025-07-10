@@ -23,6 +23,25 @@ PAPER_STATUS_COUNT = Gauge("refnet_papers_by_status", "Papers by processing stat
 
 ACTIVE_CONNECTIONS = Gauge("refnet_db_connections_active", "Active database connections")
 
+# Celeryタスク専用メトリクス
+CELERY_TASK_DURATION = Histogram(
+    "celery_task_duration_seconds",
+    "Celery task execution time",
+    ["task_name", "status"]
+)
+
+CELERY_TASK_TOTAL = Counter(
+    "celery_task_total",
+    "Total number of Celery tasks",
+    ["task_name", "status"]
+)
+
+CELERY_BEAT_SCHEDULE_RUNS = Counter(
+    "celery_beat_schedule_runs_total",
+    "Total scheduled task executions",
+    ["schedule_name"]
+)
+
 
 class MetricsCollector:
     """メトリクス収集クラス."""
@@ -53,6 +72,18 @@ class MetricsCollector:
     def update_db_connections(count: int) -> None:
         """データベース接続数更新."""
         ACTIVE_CONNECTIONS.set(count)
+
+    @staticmethod
+    def track_celery_task(task_name: str, status: str, duration: float | None = None) -> None:
+        """Celeryタスク実行メトリクス記録."""
+        CELERY_TASK_TOTAL.labels(task_name=task_name, status=status).inc()
+        if duration is not None:
+            CELERY_TASK_DURATION.labels(task_name=task_name, status=status).observe(duration)
+
+    @staticmethod
+    def track_beat_schedule(schedule_name: str) -> None:
+        """Celery Beatスケジュール実行メトリクス記録."""
+        CELERY_BEAT_SCHEDULE_RUNS.labels(schedule_name=schedule_name).inc()
 
     @staticmethod
     def get_metrics() -> bytes:
