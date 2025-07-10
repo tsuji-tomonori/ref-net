@@ -51,3 +51,8 @@ scrape_configs:
     static_configs:
       - targets: ['flower:5555']
     metrics_path: /api/workers
+
+  # Celery Exporter
+  - job_name: 'celery-exporter'
+    static_configs:
+      - targets: ['celery-exporter:9540']
