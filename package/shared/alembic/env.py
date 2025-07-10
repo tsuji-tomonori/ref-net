@@ -54,7 +54,7 @@ def include_object(object, name, type_, reflected, compare_to):
 def process_revision_directives(context, revision, directives):
     """リビジョン処理のカスタマイズ."""
     # 空のマイグレーションを防ぐ
-    if getattr(config.cmd_opts, 'autogenerate', False):
+    if getattr(config.cmd_opts, "autogenerate", False):
         script = directives[0]
         if script.upgrade_ops.is_empty():
             directives[:] = []
