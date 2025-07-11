@@ -258,7 +258,7 @@ class TestCelerySecurityMiddleware:
     def test_check_user_permission_edge_cases(self) -> None:
         """ユーザー権限チェックのエッジケーステスト."""
         assert not _check_user_permission("")
-        # 空白文字は長さが0より大きいためTrueになる
+        # 空白文字をテストしてline 263をカバー
         assert _check_user_permission("   ")  # len("   ") > 0のためTrue
         assert _check_user_permission("valid_user")
 
@@ -290,3 +290,20 @@ class TestCelerySecurityMiddleware:
         with patch("refnet_shared.security.celery_security.current_task", None):
             result = test_task_no_context()
             assert result == "success"
+
+    def test_check_admin_permission_edge_cases(self) -> None:
+        """管理者権限チェックのエッジケーステスト."""
+        # Empty string
+        assert not _check_admin_permission("")
+        # Space characters
+        assert not _check_admin_permission("   ")
+        # Case sensitive admin roles
+        assert _check_admin_permission("admin")
+        assert not _check_admin_permission("Admin")  # case sensitive
+
+    def test_is_scheduled_execution_has_attr_cases(self) -> None:
+        """スケジュール実行のhasattrチェックテスト."""
+        # current_taskの属性がない場合
+        with patch("refnet_shared.security.celery_security.current_task") as mock_task:
+            mock_task.request = object()  # eta/countdown属性を持たないオブジェクト
+            assert not _is_scheduled_execution()
