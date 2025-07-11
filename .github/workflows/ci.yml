@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -119,3 +120,8 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false
+        directory: ./
+        files: ./package/api/coverage.json,./package/crawler/coverage.json,./package/generator/coverage.json,./package/shared/coverage.json,./package/summarizer/coverage.json
+        flags: unittests
+        name: codecov-umbrella
+        verbose: true
