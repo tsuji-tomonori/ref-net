@@ -90,7 +90,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=src/refnet_api --cov-report=term-missing --cov-report=html --cov-fail-under=80"
+addopts = "-v --cov=src/refnet_api --cov-report=term-missing --cov-report=html --cov-report=json --cov-fail-under=80"
 pythonpath = ["src"]
 
 [tool.coverage.run]

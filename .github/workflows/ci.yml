@@ -47,6 +47,72 @@ jobs:
       run: |
         moon :check
 
+    - name: Generate coverage report
+      run: |
+        echo "## Coverage Report by File" > coverage_report.md
+        echo "" >> coverage_report.md
+
+        for package_dir in package/*/; do
+          if [ -f "${package_dir}coverage.json" ]; then
+            package_name=$(basename "$package_dir")
+            echo "### $package_name" >> coverage_report.md
+            echo "" >> coverage_report.md
+
+            # Parse coverage.json and extract file coverage info
+            echo "| File | Coverage |" >> coverage_report.md
+            echo "|------|----------|" >> coverage_report.md
+            jq -r '.files | to_entries[] | [.key, .value.summary.percent_covered] | @tsv' "${package_dir}coverage.json" | while IFS=$'\t' read -r file_path coverage; do
+              rel_path=$(python3 -c "import os; print(os.path.relpath('${file_path}', '${package_dir}'))")
+              echo "| ${rel_path} | ${coverage}% |" >> coverage_report.md
+            done 2>/dev/null || {
+              echo "| No coverage data available | - |" >> coverage_report.md
+            }
+
+            echo "" >> coverage_report.md
+          fi
+        done
+
+    - name: Comment coverage report
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          try {
+            const coverageReport = fs.readFileSync('coverage_report.md', 'utf8');
+
+            // Find existing coverage comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes('Coverage Report by File')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: coverageReport
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: coverageReport
+              });
+            }
+          } catch (error) {
+            console.error('Error posting coverage comment:', error);
+          }
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       if: success()

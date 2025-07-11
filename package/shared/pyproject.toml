@@ -100,7 +100,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=src/refnet_shared --cov-report=term-missing"
+addopts = "-v --cov=src/refnet_shared --cov-report=term-missing --cov-report=html --cov-report=json"
 filterwarnings = [
     "ignore::DeprecationWarning:sqlalchemy.*",
     "ignore::DeprecationWarning:.*sqlite3.*"
