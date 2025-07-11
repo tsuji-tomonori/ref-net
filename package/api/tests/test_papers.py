@@ -4,6 +4,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from refnet_shared.auth.jwt_handler import jwt_handler
 from refnet_shared.models.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -41,7 +42,14 @@ def client(test_db: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_create_paper(client: TestClient) -> None:
+@pytest.fixture
+def auth_headers() -> dict[str, str]:
+    """認証ヘッダー."""
+    token = jwt_handler.create_access_token("test_user")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_create_paper(client: TestClient, auth_headers: dict[str, str]) -> None:
     """論文作成テスト."""
     paper_data = {
         "paper_id": "test-paper-1",
@@ -51,15 +59,15 @@ def test_create_paper(client: TestClient) -> None:
         "citation_count": 10
     }
 
-    response = client.post("/api/v1/papers/", json=paper_data)
-    assert response.status_code == 200
+    response = client.post("/api/v1/papers/", json=paper_data, headers=auth_headers)
+    assert response.status_code == 201
 
     data = response.json()
     assert data["paper_id"] == "test-paper-1"
     assert "message" in data
 
 
-def test_get_paper(client: TestClient) -> None:
+def test_get_paper(client: TestClient, auth_headers: dict[str, str]) -> None:
     """論文取得テスト."""
     # 論文作成
     paper_data = {
@@ -67,7 +75,7 @@ def test_get_paper(client: TestClient) -> None:
         "title": "Test Paper 2",
         "year": 2023
     }
-    client.post("/api/v1/papers/", json=paper_data)
+    client.post("/api/v1/papers/", json=paper_data, headers=auth_headers)
 
     # 取得
     response = client.get("/api/v1/papers/test-paper-2")
