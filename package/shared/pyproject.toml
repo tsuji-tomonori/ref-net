@@ -19,6 +19,12 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "prometheus-client>=0.20.0",
     "psutil>=7.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+monitoring = [
+    "flower>=2.0.0",
 ]
 
 [dependency-groups]

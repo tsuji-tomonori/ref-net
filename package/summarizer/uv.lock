@@ -1058,6 +1058,7 @@ dependencies = [
     { name = "celery" },
     { name = "click" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "prometheus-client" },
     { name = "psutil" },
@@ -1076,6 +1077,8 @@ requires-dist = [
     { name = "celery", specifier = ">=5.3.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "flower", marker = "extra == 'monitoring'", specifier = ">=2.0.0" },
+    { name = "httpx", specifier = ">=0.25.0" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "prometheus-client", specifier = ">=0.20.0" },
     { name = "psutil", specifier = ">=7.0.0" },
@@ -1087,6 +1090,7 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "structlog", specifier = ">=23.0.0" },
 ]
+provides-extras = ["monitoring"]
 
 [package.metadata.requires-dev]
 dev = [
