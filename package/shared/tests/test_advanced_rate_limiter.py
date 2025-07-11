@@ -403,11 +403,9 @@ class TestAdvancedRateLimitMiddleware:
             # ミドルウェアの内部でuser_idを設定するために直接パッチ
             with patch('refnet_shared.middleware.rate_limiter.advanced_rate_limit_middleware.<locals>.user_id', 'test_user'):
                 # user_idを直接操作するためのモック
-                original_middleware = middleware
 
                 async def patched_middleware(req, call_next_func):
                     # オリジナルのミドルウェアをコピーしてuser_idを設定
-                    client_ip = req.client.host if req.client else "unknown"
                     user_id = "test_user"  # ユーザーIDを直接設定
 
                     if not req.url.path.startswith("/api/"):
