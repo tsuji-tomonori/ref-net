@@ -155,15 +155,19 @@ def create_advanced_rate_limit_middleware() -> Callable:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             # JWT トークンからユーザーIDを取得する処理
-            # 実装は認証システムに依存するため、ここではスキップ
-            # TODO: JWTデコード実装後に以下のようなコードを追加
-            # try:
-            #     token = auth_header.split(" ")[1]
-            #     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-            #     user_id = payload.get("user_id")
-            # except Exception:
-            #     pass
-            pass
+            try:
+                from refnet_shared.auth.jwt_handler import jwt_handler
+                token = auth_header.split(" ")[1]
+                payload = jwt_handler.verify_token(token)
+                user_id = payload.get("sub")
+                logger.debug("JWT token verified for rate limiting", user_id=user_id)
+            except ImportError:
+                logger.warning("JWT handler not available, falling back to IP-based rate limiting")
+                pass
+            except Exception as e:
+                logger.debug("JWT token verification failed", error=str(e))
+                # 認証失敗でもレート制限は継続（IPベース）
+                pass
 
         # レート制限チェック（ユーザー認証があればユーザー別、なければIP別）
         if user_id is not None:

@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from refnet_shared.auth.jwt_handler import jwt_handler
 from refnet_shared.models.database import Base, Paper, PaperRelation
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -40,6 +41,13 @@ def client(test_db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_headers() -> dict[str, str]:
+    """認証ヘッダー."""
+    token = jwt_handler.create_access_token("test_user")
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -96,9 +104,11 @@ def sample_relations(test_db: Session, sample_papers: list[Paper]) -> list[Paper
     return relations
 
 
-def test_get_papers_list(client: TestClient, sample_papers: list[Paper]) -> None:
+def test_get_papers_list(
+    client: TestClient, auth_headers: dict[str, str], sample_papers: list[Paper]
+) -> None:
     """論文一覧取得のテスト."""
-    response = client.get("/api/v1/papers/")
+    response = client.get("/api/v1/papers/", headers=auth_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -108,9 +118,11 @@ def test_get_papers_list(client: TestClient, sample_papers: list[Paper]) -> None
     assert len(data["papers"]) == 5
 
 
-def test_get_papers_with_pagination(client: TestClient, sample_papers: list[Paper]) -> None:
+def test_get_papers_with_pagination(
+    client: TestClient, auth_headers: dict[str, str], sample_papers: list[Paper]
+) -> None:
     """ページネーション付き論文一覧取得のテスト."""
-    response = client.get("/api/v1/papers/?skip=2&limit=2")
+    response = client.get("/api/v1/papers/?skip=2&limit=2", headers=auth_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -121,7 +133,9 @@ def test_get_papers_with_pagination(client: TestClient, sample_papers: list[Pape
     assert len(data["papers"]) == 2
 
 
-def test_update_paper(client: TestClient, sample_papers: list[Paper]) -> None:
+def test_update_paper(
+    client: TestClient, auth_headers: dict[str, str], sample_papers: list[Paper]
+) -> None:
     """論文更新のテスト."""
     update_data = {
         "title": "Updated Title",
@@ -129,7 +143,7 @@ def test_update_paper(client: TestClient, sample_papers: list[Paper]) -> None:
         "citation_count": 999,
     }
 
-    response = client.put("/api/v1/papers/paper-0", json=update_data)
+    response = client.put("/api/v1/papers/paper-0", json=update_data, headers=auth_headers)
     assert response.status_code == 200
 
     # 更新されたデータを確認
@@ -140,11 +154,13 @@ def test_update_paper(client: TestClient, sample_papers: list[Paper]) -> None:
     assert data["citation_count"] == 999
 
 
-def test_update_paper_not_found(client: TestClient) -> None:
+def test_update_paper_not_found(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     """存在しない論文の更新テスト."""
     update_data = {"title": "Updated Title"}
 
-    response = client.put("/api/v1/papers/non-existent", json=update_data)
+    response = client.put("/api/v1/papers/non-existent", json=update_data, headers=auth_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Paper not found"
 

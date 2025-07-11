@@ -8,6 +8,7 @@ from refnet_shared.models.schemas import PaperCreate, PaperRelationResponse, Pap
 from sqlalchemy.orm import Session
 
 from refnet_api.dependencies import get_db
+from refnet_api.middleware.auth import get_current_user
 from refnet_api.responses import (
     MessageResponse,
     PaperCreateResponse,
@@ -29,8 +30,10 @@ async def get_papers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),  # 認証必須化
 ) -> PaperListResponse:
-    """論文一覧取得."""
+    """論文一覧取得（認証必須）."""
+    logger.info("Papers list requested", user_id=current_user["user_id"], skip=skip, limit=limit)
     service = PaperService(db)
     papers = service.get_papers(skip=skip, limit=limit)
     # 実際の実装では適切なカウントを取得
@@ -53,8 +56,12 @@ async def get_paper(paper_id: str, db: Session = Depends(get_db)) -> APIPaperRes
     return APIPaperResponse.model_validate(paper)
 
 
-@router.post("/", response_model=PaperCreateResponse)
-async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> PaperCreateResponse:
+@router.post("/", response_model=PaperCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_paper(
+    paper: PaperCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),  # 追加
+) -> PaperCreateResponse:
     """論文作成."""
     service = PaperService(db)
 
@@ -72,7 +79,10 @@ async def create_paper(paper: PaperCreate, db: Session = Depends(get_db)) -> Pap
 
 @router.put("/{paper_id}", response_model=APIPaperResponse)
 async def update_paper(
-    paper_id: str, paper_update: PaperUpdate, db: Session = Depends(get_db)
+    paper_id: str,
+    paper_update: PaperUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),  # 追加
 ) -> APIPaperResponse:
     """論文更新."""
     service = PaperService(db)
