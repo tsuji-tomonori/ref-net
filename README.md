@@ -1,6 +1,8 @@
 # ref-net
 
 [![CI](https://github.com/tsuji-tomonori/ref-net/actions/workflows/ci.yml/badge.svg)](https://github.com/tsuji-tomonori/ref-net/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tsuji-tomonori/ref-net/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/tsuji-tomonori/ref-net)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tsuji-tomonori_ref-net&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tsuji-tomonori_ref-net)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Moon](https://img.shields.io/badge/moon-task_runner-purple.svg)](https://moonrepo.dev/)
 [![uv](https://img.shields.io/badge/uv-package_manager-green.svg)](https://docs.astral.sh/uv/)
