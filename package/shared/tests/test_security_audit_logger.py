@@ -1,10 +1,7 @@
 """セキュリティ監査ログのテスト."""
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
-
-import pytest
-import structlog
+from unittest.mock import patch
 
 from refnet_shared.security.audit_logger import (
     SecurityAuditEvent,
@@ -224,3 +221,34 @@ class TestSecurityAuditLogger:
             )
             event = mock_log.call_args[0][0]
             assert event.risk_level == "high"
+
+    def test_log_event_unknown_risk_level(self) -> None:
+        """未知リスクレベルのイベントログ記録テスト."""
+        logger = SecurityAuditLogger()
+        with patch.object(logger.logger, "info") as mock_info:
+            event = SecurityAuditEvent(
+                event_type=SecurityEventType.API_ACCESS,
+                timestamp=datetime.now(),
+                user_id="test_user",
+                ip_address="192.168.1.1",
+                result="success",
+                risk_level="unknown",  # 未知レベル
+            )
+            logger.log_event(event)
+            mock_info.assert_called_once()  # デフォルトはinfoレベル
+
+    def test_log_flower_access_failure(self) -> None:
+        """Flowerアクセス失敗ログ記録テスト."""
+        with patch.object(security_audit_logger, "log_event") as mock_log:
+            security_audit_logger.log_flower_access(
+                user_id="test_user",
+                ip_address="192.168.1.1",
+                path="/flower/admin",
+                success=False,  # 失敗
+                details={"method": "POST"},
+            )
+            mock_log.assert_called_once()
+            event = mock_log.call_args[0][0]
+            assert event.event_type == SecurityEventType.FLOWER_ACCESS
+            assert event.result == "failed"
+            assert event.risk_level == "medium"  # 失敗時はリスクレベルがmedium

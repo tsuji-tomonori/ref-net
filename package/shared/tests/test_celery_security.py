@@ -11,7 +11,6 @@ from refnet_shared.security.celery_security import (
     _check_admin_permission,
     _check_user_permission,
     _is_scheduled_execution,
-    celery_security,
     log_task_execution,
     require_admin_permission,
     require_user_permission,
@@ -250,3 +249,44 @@ class TestCelerySecurityMiddleware:
         assert not info["high_risk"]
         assert not info["user_allowed"]
         assert info["system_only"]
+
+    def test_check_admin_permission_system_user(self) -> None:
+        """システムユーザーの管理者権限チェックテスト."""
+        assert _check_admin_permission("system")
+        assert _check_admin_permission("root")
+
+    def test_check_user_permission_edge_cases(self) -> None:
+        """ユーザー権限チェックのエッジケーステスト."""
+        assert not _check_user_permission("")
+        # 空白文字は長さが0より大きいためTrueになる
+        assert _check_user_permission("   ")  # len("   ") > 0のためTrue
+        assert _check_user_permission("valid_user")
+
+    def test_is_scheduled_execution_edge_cases(self) -> None:
+        """スケジュール実行チェックのエッジケーステスト."""
+        # countdownが設定されている場合
+        with patch("refnet_shared.security.celery_security.current_task") as mock_task:
+            mock_request = MagicMock()
+            mock_request.eta = None
+            mock_request.countdown = 0
+            mock_task.request = mock_request
+            assert _is_scheduled_execution()  # hasattr(request, 'countdown')がTrue
+
+        # hasattrでチェックするため、属性が存在するだけでTrueになる
+        with patch("refnet_shared.security.celery_security.current_task") as mock_task:
+            mock_request = MagicMock()
+            # MagicMockはデフォルトで任意の属性へのアクセスを許可するため
+            # hasattr(mock_request, 'eta')やhasattr(mock_request, 'countdown')はTrueになる
+            mock_task.request = mock_request
+            assert _is_scheduled_execution()  # hasattrがTrueを返すため
+
+    def test_decorator_without_current_task(self) -> None:
+        """タスクコンテキストがない場合のデコレーターテスト."""
+        @log_task_execution
+        def test_task_no_context():
+            return "success"
+
+        # current_taskがNoneの場合はそのまま実行される
+        with patch("refnet_shared.security.celery_security.current_task", None):
+            result = test_task_no_context()
+            assert result == "success"
