@@ -272,3 +272,107 @@ class TestBatchAutomation:
             assert PrometheusMiddleware is not None
         except ImportError as e:
             pytest.fail(f"Failed to import PrometheusMiddleware: {e}")
+
+    def test_metrics_track_celery_task_with_duration(self):
+        """メトリクスCeleryタスク継続時間付き追跡テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # track_celery_taskのduration付きテスト（line 80-81カバー）
+        try:
+            MetricsCollector.track_celery_task("test_task", "success", 5.5)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.track_celery_task with duration failed: {e}")
+
+    def test_metrics_track_beat_schedule(self):
+        """メトリクスBeatスケジュール追跡テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # track_beat_scheduleテスト（line 86カバー）
+        try:
+            MetricsCollector.track_beat_schedule("daily_backup")
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.track_beat_schedule failed: {e}")
+
+    def test_metrics_update_db_connections(self):
+        """メトリクスデータベース接続数更新テスト."""
+        from refnet_shared.utils.metrics import MetricsCollector
+
+        # update_db_connectionsテスト（line 74カバー）
+        try:
+            MetricsCollector.update_db_connections(10)
+        except Exception as e:
+            pytest.fail(f"MetricsCollector.update_db_connections failed: {e}")
+
+    def test_prometheus_middleware_init(self):
+        """プロメテウスミドルウェア初期化テスト."""
+        from refnet_shared.utils.metrics import PrometheusMiddleware
+
+        # PrometheusMiddlewareの初期化テスト（line 98-99カバー）
+        try:
+            middleware = PrometheusMiddleware("test_app")
+            assert middleware.app == "test_app"
+        except Exception as e:
+            pytest.fail(f"PrometheusMiddleware initialization failed: {e}")
+
+    def test_prometheus_middleware_non_http_request(self):
+        """プロメテウスミドルウェア非HTTPリクエストテスト."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        from refnet_shared.utils.metrics import PrometheusMiddleware
+
+        # 非HTTPリクエストのテスト（line 102-104カバー）
+        middleware = PrometheusMiddleware(None)
+        mock_app = AsyncMock()
+        middleware.app = mock_app
+
+        scope = {"type": "websocket"}
+        receive = AsyncMock()
+        send = AsyncMock()
+
+        async def test_websocket():
+            await middleware(scope, receive, send)
+
+        asyncio.run(test_websocket())
+        mock_app.assert_called_once_with(scope, receive, send)
+
+    def test_prometheus_middleware_http_response(self):
+        """プロメテウスミドルウェアHTTPレスポンステスト."""
+        import asyncio
+        from unittest.mock import AsyncMock, patch
+
+        from refnet_shared.utils.metrics import PrometheusMiddleware
+
+        # HTTPレスポンス処理のテスト（line 106-117カバー）
+        middleware = PrometheusMiddleware(None)
+
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/test"
+        }
+
+        async def mock_app(scope, receive, send_wrapper):
+            # HTTPレスポンススタートを送信
+            await send_wrapper({
+                "type": "http.response.start",
+                "status": 200
+            })
+            # その他のメッセージを送信
+            await send_wrapper({
+                "type": "http.response.body",
+                "body": b"test"
+            })
+
+        middleware.app = mock_app
+
+        receive = AsyncMock()
+        send = AsyncMock()
+
+        with patch("refnet_shared.utils.metrics.MetricsCollector.track_request") as mock_track:
+            async def test_http():
+                await middleware(scope, receive, send)
+
+            asyncio.run(test_http())
+            # track_requestが呼ばれたことを確認
+            mock_track.assert_called_once()

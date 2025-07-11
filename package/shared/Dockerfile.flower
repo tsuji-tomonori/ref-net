@@ -28,5 +28,5 @@ USER flower
 # Flower用ポート
 EXPOSE 5555
 
-# 起動コマンド（認証付き、環境変数を正しく展開）
-ENTRYPOINT ["sh", "-c", "celery -A refnet_shared.celery_app flower --port=5555 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"]
+# 起動コマンド（認証付き、URL prefix対応）
+ENTRYPOINT ["sh", "-c", "celery -A refnet_shared.celery_app flower --port=5555 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD} --url-prefix=${FLOWER_URL_PREFIX:-/flower} --session-timeout=30m --max-workers=100"]

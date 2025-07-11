@@ -1,7 +1,9 @@
 """認証関連テスト."""
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+import jwt
 import pytest
 
 from refnet_shared.auth.jwt_handler import JWTHandler
@@ -108,3 +110,31 @@ class TestJWTHandler:
         handler = JWTHandler()
         with pytest.raises(SecurityError, match="Token verification failed"):
             handler.verify_token("invalid_token")
+    def test_verify_token_manual_expiry_check(self) -> None:
+        """手動有効期限チェックテスト（カバレッジ向上）."""
+        handler = JWTHandler()
+
+        # 過去の有効期限でトークンを作成
+        expired_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+        payload = {"sub": "test_user", "exp": expired_time.timestamp(), "iat": datetime.now(timezone.utc).timestamp(), "type": "access"}
+
+        # jwt.decodeは成功するが、manual checkで失敗する場合をテスト
+        with patch("refnet_shared.auth.jwt_handler.jwt.decode", return_value=payload):
+            with pytest.raises(SecurityError, match="Token has expired"):
+                handler.verify_token("expired_token")
+
+    def test_verify_token_jwt_expired_signature_error(self) -> None:
+        """JWT ExpiredSignatureErrorハンドリングテスト."""
+        handler = JWTHandler()
+
+        with patch("refnet_shared.auth.jwt_handler.jwt.decode", side_effect=jwt.ExpiredSignatureError()):
+            with pytest.raises(SecurityError, match="Token has expired"):
+                handler.verify_token("expired_token")
+
+    def test_verify_token_invalid_token_error(self) -> None:
+        """JWT InvalidTokenErrorハンドリングテスト."""
+        handler = JWTHandler()
+
+        with patch("refnet_shared.auth.jwt_handler.jwt.decode", side_effect=jwt.InvalidTokenError("Invalid token")):
+            with pytest.raises(SecurityError, match="Invalid token"):
+                handler.verify_token("invalid_token")
