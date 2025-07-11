@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -47,9 +48,94 @@ jobs:
       run: |
         moon :check
 
+    - name: Generate coverage report
+      run: |
+        echo "## 📊 Coverage Report by File" > coverage_report.md
+        echo "" >> coverage_report.md
+
+        # Add links to coverage tools
+        echo "### 🔗 Coverage Links" >> coverage_report.md
+        echo "- [View on Codecov](https://app.codecov.io/gh/${{ github.repository }}/pull/${{ github.event.pull_request.number }})" >> coverage_report.md
+        echo "- [Repository Coverage Dashboard](https://app.codecov.io/gh/${{ github.repository }})" >> coverage_report.md
+        echo "" >> coverage_report.md
+
+        for package_dir in package/*/; do
+          if [ -f "${package_dir}coverage.json" ]; then
+            package_name=$(basename "$package_dir")
+            echo "### 📦 $package_name" >> coverage_report.md
+
+            # Extract total coverage for this package
+            total_coverage=$(jq -r '.totals.percent_covered' "${package_dir}coverage.json" 2>/dev/null || echo "N/A")
+            echo "_Total Coverage: ${total_coverage}%_" >> coverage_report.md
+            echo "" >> coverage_report.md
+
+            # Parse coverage.json and extract file coverage info
+            echo "| File | Coverage |" >> coverage_report.md
+            echo "|------|----------|" >> coverage_report.md
+            jq -r '.files | to_entries[] | [.key, .value.summary.percent_covered] | @tsv' "${package_dir}coverage.json" | while IFS=$'\t' read -r file_path coverage; do
+              rel_path=$(python3 -c "import os; print(os.path.relpath('${file_path}', '${package_dir}'))")
+              echo "| ${rel_path} | ${coverage}% |" >> coverage_report.md
+            done 2>/dev/null || {
+              echo "| No coverage data available | - |" >> coverage_report.md
+            }
+
+            echo "" >> coverage_report.md
+          fi
+        done
+
+        # Add footer with timestamp
+        echo "---" >> coverage_report.md
+        echo "_Generated at $(date -u '+%Y-%m-%d %H:%M:%S UTC')_" >> coverage_report.md
+
+    - name: Comment coverage report
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          try {
+            const coverageReport = fs.readFileSync('coverage_report.md', 'utf8');
+
+            // Find existing coverage comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes('Coverage Report by File')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: coverageReport
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: coverageReport
+              });
+            }
+          } catch (error) {
+            console.error('Error posting coverage comment:', error);
+          }
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       if: success()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false
+        directory: ./
+        files: ./package/api/coverage.json,./package/crawler/coverage.json,./package/generator/coverage.json,./package/shared/coverage.json,./package/summarizer/coverage.json
+        flags: unittests
+        name: codecov-umbrella
+        verbose: true
