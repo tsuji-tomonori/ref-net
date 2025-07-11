@@ -130,6 +130,10 @@ class AdvancedRateLimiter:
 # グローバルインスタンス
 advanced_rate_limiter = AdvancedRateLimiter()
 
+# 後方互換性のためのエイリアス
+RateLimiter = AdvancedRateLimiter
+rate_limiter = advanced_rate_limiter
+
 
 def create_advanced_rate_limit_middleware() -> Callable:
     """高度なレート制限ミドルウェア作成."""
@@ -147,15 +151,22 @@ def create_advanced_rate_limit_middleware() -> Callable:
             return response  # type: ignore
 
         # ユーザー認証情報を取得（JWT等から）
-        user_id = None
+        user_id: str | None = None
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             # JWT トークンからユーザーIDを取得する処理
             # 実装は認証システムに依存するため、ここではスキップ
+            # TODO: JWTデコード実装後に以下のようなコードを追加
+            # try:
+            #     token = auth_header.split(" ")[1]
+            #     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            #     user_id = payload.get("user_id")
+            # except Exception:
+            #     pass
             pass
 
         # レート制限チェック（ユーザー認証があればユーザー別、なければIP別）
-        if user_id:
+        if user_id is not None:
             allowed, info = advanced_rate_limiter.check_user_specific_limit(user_id, request.url.path)
             limit_key = f"user:{user_id}"
         else:

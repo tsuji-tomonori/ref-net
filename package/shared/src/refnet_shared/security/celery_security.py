@@ -107,13 +107,14 @@ def require_admin_permission(task_func: Callable) -> Callable:
             raise Reject("Admin permission required")
 
         # 管理者アクションをログに記録
-        security_audit_logger.log_admin_action(
-            user_id=user_id,
-            ip_address=kwargs.get("ip_address", "unknown"),
-            action="execute_task",
-            resource=task_name,
-            details={"task_args": args, "task_kwargs": kwargs}
-        )
+        if user_id:
+            security_audit_logger.log_admin_action(
+                user_id=user_id,
+                ip_address=kwargs.get("ip_address", "unknown"),
+                action="execute_task",
+                resource=task_name,
+                details={"task_args": args, "task_kwargs": kwargs}
+            )
 
         return task_func(*args, **kwargs)
 
