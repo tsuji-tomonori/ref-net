@@ -50,13 +50,23 @@ jobs:
 
     - name: Generate coverage report
       run: |
-        echo "## Coverage Report by File" > coverage_report.md
+        echo "## 📊 Coverage Report by File" > coverage_report.md
+        echo "" >> coverage_report.md
+
+        # Add links to coverage tools
+        echo "### 🔗 Coverage Links" >> coverage_report.md
+        echo "- [View on Codecov](https://app.codecov.io/gh/${{ github.repository }}/pull/${{ github.event.pull_request.number }})" >> coverage_report.md
+        echo "- [Repository Coverage Dashboard](https://app.codecov.io/gh/${{ github.repository }})" >> coverage_report.md
         echo "" >> coverage_report.md
 
         for package_dir in package/*/; do
           if [ -f "${package_dir}coverage.json" ]; then
             package_name=$(basename "$package_dir")
-            echo "### $package_name" >> coverage_report.md
+            echo "### 📦 $package_name" >> coverage_report.md
+
+            # Extract total coverage for this package
+            total_coverage=$(jq -r '.totals.percent_covered' "${package_dir}coverage.json" 2>/dev/null || echo "N/A")
+            echo "_Total Coverage: ${total_coverage}%_" >> coverage_report.md
             echo "" >> coverage_report.md
 
             # Parse coverage.json and extract file coverage info
@@ -72,6 +82,10 @@ jobs:
             echo "" >> coverage_report.md
           fi
         done
+
+        # Add footer with timestamp
+        echo "---" >> coverage_report.md
+        echo "_Generated at $(date -u '+%Y-%m-%d %H:%M:%S UTC')_" >> coverage_report.md
 
     - name: Comment coverage report
       uses: actions/github-script@v7
