@@ -1,6 +1,7 @@
 """メンテナンスタスク."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 import structlog
 from sqlalchemy import and_
@@ -12,8 +13,8 @@ from refnet_shared.models.database_manager import db_manager
 logger = structlog.get_logger(__name__)
 
 
-@app.task(bind=True, name="refnet_shared.tasks.maintenance.cleanup_old_data")
-def cleanup_old_data(self):
+@app.task(bind=True, name="refnet_shared.tasks.maintenance.cleanup_old_data")  # type: ignore[misc]
+def cleanup_old_data(self: Any) -> dict:
     """90日以上前の未処理データをクリーンアップ."""
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=90)

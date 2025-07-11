@@ -6,7 +6,7 @@ from typing import Any
 import structlog
 from celery import Celery
 from celery.schedules import crontab
-from kombu import Exchange, Queue
+from kombu import Exchange, Queue  # type: ignore[import-untyped]
 
 from refnet_shared.config.environment import load_environment_settings
 

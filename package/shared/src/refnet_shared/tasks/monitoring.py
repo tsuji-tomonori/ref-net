@@ -1,6 +1,7 @@
 """モニタリングタスク."""
 
 from datetime import datetime
+from typing import Any
 
 import httpx
 import structlog
@@ -10,8 +11,8 @@ from refnet_shared.celery_app import app
 logger = structlog.get_logger(__name__)
 
 
-@app.task(bind=True, name="refnet_shared.tasks.monitoring.health_check_all_services")
-def health_check_all_services(self):
+@app.task(bind=True, name="refnet_shared.tasks.monitoring.health_check_all_services")  # type: ignore[misc]
+def health_check_all_services(self: Any) -> dict:
     """全サービスのヘルスチェック."""
     services = {
         "api": "http://api:8000/health",
@@ -20,7 +21,7 @@ def health_check_all_services(self):
         "generator": "http://generator:8003/health",
     }
 
-    results = {}
+    results: dict[str, dict[str, str | int | float]] = {}
 
     for service_name, url in services.items():
         try:
@@ -36,13 +37,17 @@ def health_check_all_services(self):
                 "error": str(e),
             }
 
-    results["timestamp"] = datetime.utcnow().isoformat()
-
     # 異常があればアラート（将来的にSlack通知等）
-    unhealthy_services = [s for s, r in results.items() if r.get("status") != "healthy"]
+    unhealthy_services = [
+        s for s, r in results.items()
+        if isinstance(r, dict) and r.get("status") != "healthy"
+    ]
     if unhealthy_services:
         logger.warning("Unhealthy services detected", services=unhealthy_services)
         # TODO: アラート実装
 
     logger.info("Health check completed", results=results)
-    return results
+
+    # Add timestamp
+    timestamp_dict = {"timestamp": datetime.utcnow().isoformat()}
+    return {**results, **timestamp_dict}

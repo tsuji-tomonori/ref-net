@@ -86,3 +86,15 @@ filterwarnings = [
     "ignore::RuntimeWarning",
     "ignore:coroutine.*was never awaited:RuntimeWarning"
 ]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*"
+]
+
+[tool.coverage.report]
+fail_under = 80
+precision = 2
+show_missing = true
+skip_covered = false

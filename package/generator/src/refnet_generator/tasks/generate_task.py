@@ -1,6 +1,7 @@
 """Markdown生成関連タスク."""
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -14,7 +15,7 @@ from refnet_generator.services.generator_service import GeneratorService
 logger = structlog.get_logger(__name__)
 
 
-@celery_app.task(bind=True, name="refnet_generator.tasks.generate_task.generate_pending_markdowns")
+@celery_app.task(bind=True, name="refnet_generator.tasks.generate_task.generate_pending_markdowns")  # type: ignore[misc]
 def generate_pending_markdowns(self: Any) -> dict:
     """保留中のMarkdown生成を実行."""
     try:
@@ -39,6 +40,7 @@ def generate_pending_markdowns(self: Any) -> dict:
             result = {
                 "status": "success",
                 "scheduled_papers": len(pending_papers),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             logger.info("Scheduled markdown generation tasks", **result)
@@ -50,7 +52,7 @@ def generate_pending_markdowns(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name="refnet_generator.tasks.generate_task.generate_markdown")
+@celery_app.task(bind=True, name="refnet_generator.tasks.generate_task.generate_markdown")  # type: ignore[misc]
 def generate_markdown(self: Any, paper_id: str) -> bool:
     """Markdown生成タスク."""
     logger.info("Starting markdown generation task", paper_id=paper_id)

@@ -16,7 +16,7 @@ logger = structlog.get_logger(__name__)
 
 @celery_app.task(
     bind=True, name="refnet_summarizer.tasks.summarize_task.process_pending_summarizations"
-)
+)  # type: ignore[misc]
 def process_pending_summarizations(self: Any) -> dict:
     """保留中の要約処理を実行."""
     try:
@@ -52,7 +52,7 @@ def process_pending_summarizations(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name="refnet_summarizer.tasks.summarize_task.summarize_paper")
+@celery_app.task(bind=True, name="refnet_summarizer.tasks.summarize_task.summarize_paper")  # type: ignore[misc]
 def summarize_paper(self: Any, paper_id: str) -> bool:
     """論文要約タスク."""
     logger.info("Starting paper summarization task", paper_id=paper_id)

@@ -13,7 +13,7 @@ from refnet_crawler.services.crawler_service import CrawlerService
 logger = structlog.get_logger(__name__)
 
 
-@celery_app.task(bind=True, name="refnet_crawler.tasks.crawl_task.check_and_crawl_new_papers")
+@celery_app.task(bind=True, name="refnet_crawler.tasks.crawl_task.check_and_crawl_new_papers")  # type: ignore[misc]
 def check_and_crawl_new_papers(self: Any) -> dict:
     """新しい論文をチェックしてクロール."""
     try:
@@ -44,7 +44,7 @@ def check_and_crawl_new_papers(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name="refnet_crawler.tasks.crawl_task.crawl_paper")
+@celery_app.task(bind=True, name="refnet_crawler.tasks.crawl_task.crawl_paper")  # type: ignore[misc]
 def crawl_paper(self: Any, paper_id: str, hop_count: int = 0, max_hops: int = 3) -> bool:
     """論文クローリングタスク."""
     logger.info("Starting paper crawl task", paper_id=paper_id, hop_count=hop_count)
