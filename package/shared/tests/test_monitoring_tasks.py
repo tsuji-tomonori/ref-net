@@ -1,142 +1,101 @@
-"""監視タスクテスト."""
+"""モニタリングタスクのテスト."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-import pytest
+import httpx
 
-from refnet_shared.tasks.monitoring_tasks import MonitoringTask, critical_system_check
+from refnet_shared.tasks.monitoring import health_check_all_services
 
 
 class TestMonitoringTasks:
-    """監視タスクテスト."""
+    """モニタリングタスクのテストクラス."""
 
-    def test_monitoring_task_on_success(self):
-        """MonitoringTaskの成功時コールバックテスト."""
-        task = MonitoringTask()
-        task.name = "test_task"
-
-        # メトリクス収集をモック
-        with patch('refnet_shared.tasks.monitoring_tasks.MetricsCollector') as mock_metrics:
-            task.on_success(
-                retval={"status": "success"},
-                task_id="test-task-id",
-                args=(),
-                kwargs={}
-            )
-
-            mock_metrics.track_task.assert_called_once_with("test_task", "SUCCESS")
-
-    def test_monitoring_task_on_failure(self):
-        """MonitoringTaskの失敗時コールバックテスト."""
-        task = MonitoringTask()
-        task.name = "test_task"
-
-        # メトリクス収集をモック
-        with patch('refnet_shared.tasks.monitoring_tasks.MetricsCollector') as mock_metrics:
-            task.on_failure(
-                exc=Exception("Test error"),
-                task_id="test-task-id",
-                args=(),
-                kwargs={},
-                einfo=None
-            )
-
-            mock_metrics.track_task.assert_called_once_with("test_task", "FAILURE")
-
-    def test_monitoring_task_on_failure_critical_task(self):
-        """重要タスクの失敗時アラートテスト."""
-        task = MonitoringTask()
-        task.name = "refnet.scheduled.database_maintenance"
-
-        # _send_alertメソッドをモック
-        with patch.object(task, '_send_alert') as mock_alert:
-            with patch('refnet_shared.tasks.monitoring_tasks.MetricsCollector'):
-                task.on_failure(
-                    exc=Exception("Test error"),
-                    task_id="test-task-id",
-                    args=(),
-                    kwargs={},
-                    einfo=None
-                )
-
-                mock_alert.assert_called_once()
-
-    def test_monitoring_task_send_alert(self):
-        """アラート送信メソッドのテスト."""
-        task = MonitoringTask()
-
-        # ログ出力をキャプチャ
-        try:
-            task._send_alert("Test Subject", "Test Message")
-        except Exception as e:
-            pytest.fail(f"_send_alert failed: {e}")
-
-    def test_critical_system_check_import(self):
-        """重要システムチェックのインポートテスト."""
-        try:
-            from refnet_shared.tasks.monitoring_tasks import critical_system_check
-            assert critical_system_check is not None
-        except ImportError as e:
-            pytest.fail(f"Failed to import critical_system_check: {e}")
-
-    def test_critical_system_check_task_execution(self):
-        """重要システムチェックタスクの実行テスト."""
-        from refnet_shared.celery_app import celery_app
-
-        # Celeryをeagerモードに設定
-        celery_app.conf.task_always_eager = True
+    @patch("refnet_shared.tasks.monitoring.httpx.get")
+    def test_health_check_all_services_success(self, mock_get: MagicMock) -> None:
+        """health_check_all_services正常系テスト."""
+        # 正常なレスポンスをモック
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.elapsed.total_seconds.return_value = 0.1
+        mock_get.return_value = mock_response
 
         # タスクを実行
-        result = critical_system_check.delay()
+        result = health_check_all_services()
 
-        # タスクが正常に実行されることを確認
-        assert result.successful()
-        response = result.get()
-        assert "status" in response
-        assert "timestamp" in response
+        # 結果の検証
+        assert "timestamp" in result
+        assert "api" in result
+        assert result["api"]["status"] == "healthy"
+        assert result["api"]["status_code"] == 200
+        assert result["api"]["response_time"] == 0.1
 
-    def test_monitoring_task_base_class(self):
-        """MonitoringTaskベースクラスのテスト."""
-        # インスタンス作成
-        task = MonitoringTask()
+        # 全サービスが含まれているか確認
+        for service in ["api", "crawler", "summarizer", "generator"]:
+            assert service in result
+            assert result[service]["status"] == "healthy"
 
-        # メソッドが存在することを確認
-        assert hasattr(task, 'on_success')
-        assert hasattr(task, 'on_failure')
-        assert hasattr(task, '_send_alert')
-        assert callable(task.on_success)
-        assert callable(task.on_failure)
-        assert callable(task._send_alert)
+    @patch("refnet_shared.tasks.monitoring.httpx.get")
+    def test_health_check_all_services_partial_failure(self, mock_get: MagicMock) -> None:
+        """health_check_all_services一部失敗テスト."""
+        # APIは正常、他は異常
+        def side_effect(url: str, timeout: float) -> MagicMock:
+            mock_response = MagicMock()
+            if "api" in url:
+                mock_response.status_code = 200
+                mock_response.elapsed.total_seconds.return_value = 0.1
+            else:
+                mock_response.status_code = 500
+                mock_response.elapsed.total_seconds.return_value = 0.5
+            return mock_response
 
-    def test_monitoring_task_attributes(self):
-        """MonitoringTaskの属性テスト."""
-        task = MonitoringTask()
+        mock_get.side_effect = side_effect
 
-        # 必要な属性が存在することを確認
-        assert hasattr(task, 'name')
+        # タスクを実行
+        result = health_check_all_services()
 
-    def test_monitoring_imports(self):
-        """監視タスクモジュールのインポートテスト."""
-        try:
-            from refnet_shared.tasks.monitoring_tasks import MetricsCollector, MonitoringTask, critical_system_check, logger
+        # 結果の検証
+        assert result["api"]["status"] == "healthy"
+        assert result["crawler"]["status"] == "unhealthy"
+        assert result["summarizer"]["status"] == "unhealthy"
+        assert result["generator"]["status"] == "unhealthy"
 
-            # すべてのインポートが成功することを確認
-            assert MonitoringTask is not None
-            assert critical_system_check is not None
-            assert logger is not None
-            assert MetricsCollector is not None
+    @patch("refnet_shared.tasks.monitoring.httpx.get")
+    def test_health_check_all_services_exception(self, mock_get: MagicMock) -> None:
+        """health_check_all_services例外発生テスト."""
+        # タイムアウト例外を発生させる
+        mock_get.side_effect = httpx.TimeoutException("Connection timeout")
 
-        except ImportError as e:
-            pytest.fail(f"Failed to import monitoring tasks components: {e}")
+        # タスクを実行
+        result = health_check_all_services()
 
-    def test_monitoring_task_celery_decorator(self):
-        """監視タスクのCeleryデコレーターテスト."""
-        # critical_system_checkがCeleryタスクとして登録されているかチェック
-        assert hasattr(critical_system_check, 'delay')
-        assert callable(critical_system_check.delay)
+        # 結果の検証
+        for service in ["api", "crawler", "summarizer", "generator"]:
+            assert service in result
+            assert result[service]["status"] == "error"
+            assert "Connection timeout" in result[service]["error"]
 
-    def test_monitoring_task_name_attribute(self):
-        """監視タスクの名前属性テスト."""
-        # タスクの名前が正しく設定されているかチェック
-        assert hasattr(critical_system_check, 'name')
-        assert critical_system_check.name == "refnet.scheduled.critical_system_check"
+    @patch("refnet_shared.tasks.monitoring.httpx.get")
+    @patch("refnet_shared.tasks.monitoring.logger")
+    def test_health_check_warning_log(self, mock_logger: MagicMock, mock_get: MagicMock) -> None:
+        """health_check_all_services警告ログテスト."""
+        # 一部サービスを異常にする
+        def side_effect(url: str, timeout: float) -> MagicMock:
+            mock_response = MagicMock()
+            if "api" in url:
+                mock_response.status_code = 200
+            else:
+                mock_response.status_code = 500
+            mock_response.elapsed.total_seconds.return_value = 0.1
+            return mock_response
+
+        mock_get.side_effect = side_effect
+
+        # タスクを実行
+        health_check_all_services()
+
+        # 警告ログが出力されたか確認
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "Unhealthy services detected"
+        assert "services" in call_args[1]
+        assert len(call_args[1]["services"]) == 3  # crawler, summarizer, generator

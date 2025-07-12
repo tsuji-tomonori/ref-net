@@ -1,26 +1,18 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# システム依存関係
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
+# システムパッケージのインストール
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Python依存関係
-COPY pyproject.toml uv.lock ./
-RUN pip install uv
-RUN uv sync --frozen
+# 共有パッケージのコピーとインストール
+COPY shared/pyproject.toml shared/moon.yml /app/shared/
+COPY shared/src /app/shared/src
 
-# アプリケーションコピー
-COPY src/ ./src/
+# 依存関係のインストール
+RUN pip install --no-cache-dir -e ./shared
 
-# 環境変数
-ENV PYTHONPATH=/app/src
-
-# Celery Beat用ディレクトリ作成
-RUN mkdir -p /app/celerybeat
-
-# 起動コマンド
-CMD ["celery", "-A", "refnet_shared.celery_app", "beat", "--loglevel=info", "--pidfile=/app/celerybeat/celerybeat.pid", "--schedule=/app/celerybeat/celerybeat-schedule"]
+# Celery Beatの実行
+CMD ["celery", "-A", "refnet_shared.celery_app", "beat", "--loglevel=info"]

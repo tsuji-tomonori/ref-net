@@ -1,32 +1,18 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# システム依存関係
-RUN apt-get update && apt-get install -y \
-    gcc \
+# システムパッケージのインストール
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Python依存関係
-COPY pyproject.toml uv.lock ./
-RUN pip install uv
-RUN uv sync --frozen
+# 共有パッケージのコピーとインストール
+COPY shared/pyproject.toml shared/moon.yml /app/shared/
+COPY shared/src /app/shared/src
 
-# アプリケーションコピー
-COPY src/ ./src/
+# 依存関係のインストール（Flowerを含む）
+RUN pip install --no-cache-dir -e ./shared[monitoring]
 
-# 環境変数
-ENV PYTHONPATH=/app/src
-
-# 非rootユーザーの作成
-RUN useradd -m -u 1000 flower && \
-    chown -R flower:flower /app
-
-# ユーザー切り替え
-USER flower
-
-# Flower用ポート
-EXPOSE 5555
-
-# 起動コマンド（認証付き、URL prefix対応）
-ENTRYPOINT ["sh", "-c", "celery -A refnet_shared.celery_app flower --port=5555 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD} --url-prefix=${FLOWER_URL_PREFIX:-/flower} --session-timeout=30m --max-workers=100"]
+# Flowerの実行
+CMD ["celery", "-A", "refnet_shared.celery_app", "flower", "--port=5555", "--basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"]

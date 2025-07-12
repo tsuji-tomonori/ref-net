@@ -17,46 +17,42 @@ def mock_celery_app():  # type: ignore
         yield mock_app
 
 
-@pytest.mark.asyncio
-async def test_summarize_paper_task_success():  # type: ignore
+def test_summarize_paper_task_success():  # type: ignore
     """論文要約タスク成功テスト."""
     with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
         mock_service = AsyncMock()
         mock_service_class.return_value = mock_service
         mock_service.summarize_paper.return_value = True
+        mock_service.close.return_value = None
 
-        # asyncio.runをモック
-        with patch('asyncio.run') as mock_run:
-            mock_run.return_value = True
+        result = summarize_paper_task("test-paper-123")
 
-            result = summarize_paper_task("test-paper-123")
-
-            assert result is True
-            mock_run.assert_called_once()
+        assert result is True
+        mock_service.summarize_paper.assert_called_once_with("test-paper-123")
+        mock_service.close.assert_called_once()
 
 
 def test_summarize_paper_task_failure():  # type: ignore
     """論文要約タスク失敗テスト."""
     # タスクが例外をキャッチして適切にログを出力することをテスト
 
-    # ロガーとstructlogをモック化して警告を回避
-    with patch('refnet_summarizer.tasks.logger') as mock_logger:
-        with patch('structlog.get_logger', return_value=mock_logger):
-            # asyncio.runを同期関数でモック化
-            def mock_run(coro):
-                raise Exception("Test error")
+    # SummarizerServiceをモック化してより直接的にテスト
+    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
+        mock_service = AsyncMock()
+        mock_service_class.return_value = mock_service
+        mock_service.summarize_paper.side_effect = Exception("Service error")
 
-            # asyncio.runをモック化
-            with patch('asyncio.run', side_effect=mock_run):
-                # Celeryタスクのretryメカニズムは複雑なのでモック化
+        with patch('refnet_summarizer.tasks.logger') as mock_logger:
+            with patch('structlog.get_logger', return_value=mock_logger):
+                # Celeryタスクのretryメカニズムをモック化
                 with patch.object(
                     summarize_paper_task, 'retry', side_effect=Exception("Retry")
                 ):  # type: ignore
                     with pytest.raises(Exception) as exc_info:
                         summarize_paper_task("test-paper-123")
 
-                    # 何らかの例外が発生することを確認
-                    assert "Test error" in str(exc_info.value) or "Retry" in str(exc_info.value)
+                    # リトライ例外が発生することを確認
+                    assert "Retry" in str(exc_info.value)
                     # ログが呼ばれることを確認
                     mock_logger.info.assert_called()
                     mock_logger.error.assert_called()
@@ -105,11 +101,12 @@ def test_celery_app_configuration():  # type: ignore
 
 def test_summarize_paper_task_exception_in_service():  # type: ignore
     """サービス内で例外が発生した場合のテスト."""
+    # SummarizerServiceをモック化してより直接的にテスト
+    with patch('refnet_summarizer.tasks.SummarizerService') as mock_service_class:
+        mock_service = AsyncMock()
+        mock_service_class.return_value = mock_service
+        mock_service.summarize_paper.side_effect = Exception("Service error")
 
-    def mock_run(coro):
-        raise Exception("Service error")
-
-    with patch('asyncio.run', side_effect=mock_run):
         with patch.object(
             summarize_paper_task, 'retry', side_effect=Exception("Retry")
         ):  # type: ignore
@@ -156,13 +153,10 @@ def test_summarize_paper_task_with_settings():  # type: ignore
         mock_service = AsyncMock()
         mock_service_class.return_value = mock_service
         mock_service.summarize_paper.return_value = True
+        mock_service.close.return_value = None
 
-        # asyncio.runを同期関数でモック化
-        def mock_run(coro):
-            return True
+        result = summarize_paper_task("test-paper-123")
 
-        with patch('asyncio.run', side_effect=mock_run) as mock_run_patch:
-            result = summarize_paper_task("test-paper-123")
-
-            assert result is True
-            mock_run_patch.assert_called_once()
+        assert result is True
+        mock_service.summarize_paper.assert_called_once_with("test-paper-123")
+        mock_service.close.assert_called_once()
