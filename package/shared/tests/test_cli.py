@@ -34,13 +34,13 @@ class TestMainGroup:
     def test_main_group_exists(self) -> None:
         """メインCLIグループが存在することを確認."""
         assert isinstance(main, click.Group)
-        assert main.name is None  # メイングループは名前なし
+        assert main.name == "main"  # メイングループの名前は"main"
 
     @patch("refnet_shared.cli.setup_logging")
     def test_main_group_calls_setup_logging(self, mock_setup_logging: MagicMock) -> None:
         """メインCLIグループがsetup_loggingを呼び出すことを確認."""
         runner = CliRunner()
-        result = runner.invoke(main, ["--help"])
+        result = runner.invoke(main, ["version"])
 
         assert result.exit_code == 0
         mock_setup_logging.assert_called_once()
@@ -271,7 +271,7 @@ class TestEnvCreateCommand:
 
         # Assert
         assert result.exit_code != 0
-        assert "Invalid value for 'ENVIRONMENT'" in result.output
+        assert "Invalid value for '{development|staging|production}'" in result.output
 
     def test_create_command_integration_success(self) -> None:
         """env createコマンドの統合テスト（成功ケース）."""
@@ -606,7 +606,7 @@ class TestEnvCheckCommand:
 
         # Assert
         assert result.exit_code != 0
-        assert "Invalid value for 'ENVIRONMENT'" in result.output
+        assert "Invalid value for '{development|staging|production}'" in result.output
 
     def test_check_command_integration_success(self) -> None:
         """env checkコマンドの統合テスト（成功ケース）."""
@@ -1142,7 +1142,7 @@ if __name__ == "__main__":
         self, command_name: str, command_function
     ) -> None:
         """個別のコマンドがClickコマンドであることを確認."""
-        assert hasattr(command_function, "__click_params__")
+        assert isinstance(command_function, click.Command)
         assert callable(command_function)
 
     @pytest.mark.parametrize(

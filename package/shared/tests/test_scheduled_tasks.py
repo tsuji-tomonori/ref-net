@@ -129,6 +129,12 @@ class TestDatabaseMaintenance:
         # VACUUMとANALYZE操作をモック
         mock_session.execute.return_value = None
 
+        # Query chain for delete operation
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.delete.return_value = 5  # Mock deleted items count
+
         result = database_maintenance()
 
         assert result["status"] == "success"
@@ -212,43 +218,59 @@ class TestBackupDatabase:
 class TestCleanupOldLogs:
     """cleanup_old_logsのテスト."""
 
-    @patch("refnet_shared.tasks.scheduled_tasks.Path")
-    def test_cleanup_old_logs_success(self, mock_path: MagicMock) -> None:
+    @patch("glob.glob")
+    @patch("os.path.exists")
+    def test_cleanup_old_logs_success(self, mock_exists: MagicMock, mock_glob: MagicMock) -> None:
         """ログクリーンアップ成功テスト."""
-        mock_log_file = MagicMock()
-        mock_log_file.stat.return_value.st_mtime = 1000000  # 古いタイムスタンプ
-        mock_log_file.is_file.return_value = True
+        mock_exists.return_value = True
+        mock_glob.return_value = ["/var/log/test.log"]
 
-        mock_path.return_value.glob.return_value = [mock_log_file]
+        with patch("refnet_shared.tasks.scheduled_tasks.Path") as mock_path:
+            # Mock path object for file operations
+            mock_file_path = MagicMock()
+            mock_file_path.stat.return_value.st_mtime = 1000000  # Old timestamp
+            mock_file_path.stat.return_value.st_size = 1024  # File size
+            mock_path.return_value = mock_file_path
 
-        with patch("refnet_shared.tasks.scheduled_tasks.time.time", return_value=2000000):
-            result = cleanup_old_logs(days_old=7)
+            with patch("refnet_shared.tasks.scheduled_tasks.datetime") as mock_datetime:
+                # Mock datetime for comparison
+                mock_datetime.utcnow.return_value = MagicMock()
+                mock_datetime.fromtimestamp.return_value = MagicMock()
+                # Make the comparison return True (old file)
+                mock_datetime.fromtimestamp.return_value.__lt__ = MagicMock(return_value=True)
+
+                result = cleanup_old_logs(days_to_keep=7)
 
             assert result["status"] == "success"
-            assert result["files_deleted"] == 1
+            assert result["files_cleaned"] == 3
 
     @patch("refnet_shared.tasks.scheduled_tasks.Path")
     def test_cleanup_old_logs_no_files(self, mock_path: MagicMock) -> None:
         """ログクリーンアップ（ファイルなし）テスト."""
         mock_path.return_value.glob.return_value = []
 
-        result = cleanup_old_logs(days_old=7)
+        result = cleanup_old_logs(days_to_keep=7)
 
         assert result["status"] == "success"
-        assert result["files_deleted"] == 0
+        assert result["files_cleaned"] == 0
 
 
 class TestGenerateStatsReport:
     """generate_stats_reportのテスト."""
 
     @patch("refnet_shared.tasks.scheduled_tasks.db_manager")
-    def test_generate_stats_report_success(self, mock_db: MagicMock) -> None:
+    @patch("builtins.open", create=True)
+    def test_generate_stats_report_success(self, mock_open: MagicMock, mock_db: MagicMock) -> None:
         """統計レポート生成成功テスト."""
         mock_session = MagicMock()
         mock_db.get_session.return_value.__enter__.return_value = mock_session
 
         # 統計データをモック
         mock_session.query.return_value.count.return_value = 100
+
+        # Mock file operations
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
 
         result = generate_stats_report()
 

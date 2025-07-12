@@ -83,10 +83,11 @@ class TestMonitoringTask:
         task = MonitoringTask()
 
         with patch("refnet_shared.tasks.monitoring_tasks.asyncio.run") as mock_run, \
-             patch("refnet_shared.tasks.monitoring_tasks.logger.error") as mock_log:
+             patch("refnet_shared.tasks.monitoring_tasks.logger.error") as mock_log, \
+             patch("refnet_shared.tasks.monitoring_tasks.trigger_recovery"):
 
             mock_run.side_effect = Exception("Recovery failed")
-            exc = Exception("Test error")
+            exc = Exception("Database connection failed")
             task._trigger_auto_recovery(exc, "task-123")
 
             mock_log.assert_called_once()
