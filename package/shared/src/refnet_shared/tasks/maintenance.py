@@ -1,6 +1,6 @@
 """メンテナンスタスク."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 def cleanup_old_data(self: Any) -> dict:
     """90日以上前の未処理データをクリーンアップ."""
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=90)
+        cutoff_date = datetime.now(UTC) - timedelta(days=90)
 
         with db_manager.get_session() as session:
             # 古い未処理論文の削除
@@ -41,7 +41,7 @@ def cleanup_old_data(self: Any) -> dict:
                 "status": "success",
                 "deleted_papers": deleted_papers,
                 "orphan_authors": orphan_authors,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             logger.info("Data cleanup completed", **result)

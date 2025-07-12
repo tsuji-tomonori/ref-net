@@ -1,6 +1,6 @@
 """モニタリングタスク."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -49,5 +49,5 @@ def health_check_all_services(self: Any) -> dict:
     logger.info("Health check completed", results=results)
 
     # Add timestamp
-    timestamp_dict = {"timestamp": datetime.utcnow().isoformat()}
+    timestamp_dict = {"timestamp": datetime.now(UTC).isoformat()}
     return {**results, **timestamp_dict}

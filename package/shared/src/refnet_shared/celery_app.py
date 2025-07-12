@@ -25,6 +25,7 @@ app.conf.update(
     result_serializer="json",
     timezone="Asia/Tokyo",
     enable_utc=True,
+    task_track_started=True,  # タスクの開始時刻を記録
     # タスクルーティング
     task_routes={
         "refnet_crawler.tasks.*": {"queue": "crawler"},
@@ -81,14 +82,55 @@ app.conf.update(
                 "expires": 300,  # 5分で期限切れ
             },
         },
+        # 既存のテストで期待されるタスク
+        "daily-paper-collection": {
+            "task": "refnet_shared.tasks.scheduled_tasks.collect_new_papers",
+            "schedule": crontab(hour=0, minute=0),  # 毎日午前0時
+            "options": {
+                "queue": "default",
+                "expires": 3600,
+            },
+        },
+        "daily-summarization": {
+            "task": "refnet_shared.tasks.scheduled_tasks.process_pending_summaries",
+            "schedule": crontab(hour=1, minute=0),  # 毎日午前1時
+            "options": {
+                "queue": "default",
+                "expires": 3600,
+            },
+        },
+        "daily-markdown-generation": {
+            "task": "refnet_shared.tasks.scheduled_tasks.generate_markdown_files",
+            "schedule": crontab(hour=2, minute=0),  # 毎日午前2時
+            "options": {
+                "queue": "default",
+                "expires": 3600,
+            },
+        },
+        "weekly-db-maintenance": {
+            "task": "refnet_shared.tasks.scheduled_tasks.database_maintenance",
+            "schedule": crontab(hour=0, minute=0, day_of_week=0),  # 毎週日曜日午前0時
+            "options": {
+                "queue": "default",
+                "expires": 7200,
+            },
+        },
+        "system-health-check": {
+            "task": "refnet_shared.tasks.scheduled_tasks.system_health_check",
+            "schedule": crontab(minute="*/30"),  # 30分ごと
+            "options": {
+                "queue": "default",
+                "expires": 1800,
+            },
+        },
     },
     # 結果の有効期限
     result_expires=3600,  # 1時間
     # タスクの実行時間制限
     task_time_limit=3600,  # 1時間
-    task_soft_time_limit=3000,  # 50分
+    task_soft_time_limit=3300,  # 55分
     # ワーカー設定
-    worker_prefetch_multiplier=4,
+    worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
     worker_disable_rate_limits=False,
     # ログ設定
