@@ -69,6 +69,12 @@ plugins = ["refnet_api.mypy_plugin"]
 module = [
     "celery.*",
     "refnet_shared.*",
+    "fastapi.*",
+    "uvicorn.*",
+    "pydantic.*",
+    "structlog.*",
+    "sqlalchemy.*",
+    "pytest.*",
 ]
 ignore_missing_imports = true
 

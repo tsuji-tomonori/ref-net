@@ -76,6 +76,17 @@ warn_unreachable = true
 strict_equality = true
 extra_checks = true
 
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "refnet_shared.*",
+    "structlog.*",
+    "jinja2.*",
+    "sqlalchemy.*",
+    "pytest.*",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
