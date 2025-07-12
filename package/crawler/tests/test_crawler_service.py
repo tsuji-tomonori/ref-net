@@ -158,7 +158,7 @@ class TestCrawlerService:
             assert existing_paper.year == 2023
             assert existing_paper.citation_count == 10
             assert existing_paper.reference_count == 5
-            assert existing_paper.crawl_status == "completed"
+            assert existing_paper.is_crawled is True
 
     @pytest.mark.asyncio
     async def test_save_authors(self, mock_db_session: Mock) -> None:
@@ -354,7 +354,7 @@ class TestCrawlerService:
             assert queue_item.status == "failed"
             assert queue_item.error_message == "Error message"
             assert queue_item.retry_count == 1
-            assert paper.crawl_status == "failed"
+            assert paper.is_crawled is False
 
     @pytest.mark.asyncio
     async def test_update_processing_status_no_queue(self, mock_db_session: Mock) -> None:
@@ -375,7 +375,7 @@ class TestCrawlerService:
                 "completed"
             )
 
-            assert paper.crawl_status == "completed"
+            assert paper.is_crawled is True
 
     @pytest.mark.asyncio
     async def test_close(self) -> None:

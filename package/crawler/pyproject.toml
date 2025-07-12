@@ -84,6 +84,12 @@ extra_checks = true
 module = [
     "celery.*",
     "refnet_shared.*",
+    "pydantic.*",
+    "httpx.*",
+    "structlog.*",
+    "tenacity.*",
+    "sqlalchemy.*",
+    "pytest.*",
 ]
 ignore_missing_imports = true
 

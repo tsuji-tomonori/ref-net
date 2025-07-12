@@ -1,6 +1,6 @@
 """Celeryアプリケーションのテスト."""
 
-from celery import Celery  # type: ignore[import-untyped]
+from celery import Celery
 
 from refnet_generator.celery_app import celery_app
 

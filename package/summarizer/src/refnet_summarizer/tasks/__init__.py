@@ -4,7 +4,7 @@ import asyncio
 from typing import Any
 
 import structlog
-from celery import Celery  # type: ignore[import-untyped]
+from celery import Celery
 from refnet_shared.config.environment import load_environment_settings
 
 from refnet_summarizer.services.summarizer_service import SummarizerService

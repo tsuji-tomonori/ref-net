@@ -35,9 +35,9 @@ class PaperStatusResponse(BaseResponse):
     """論文ステータスレスポンス."""
 
     paper_id: str
-    crawl_status: str
-    pdf_status: str
-    summary_status: str
+    is_crawled: bool
+    is_summarized: bool
+    is_generated: bool
 
 
 class PaperRelationsResponse(BaseResponse):

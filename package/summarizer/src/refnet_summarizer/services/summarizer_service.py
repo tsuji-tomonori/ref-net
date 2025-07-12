@@ -51,7 +51,7 @@ class SummarizerService:
                 # PDF 情報の更新
                 paper.pdf_hash = self.pdf_processor.calculate_hash(pdf_content)
                 paper.pdf_size = len(pdf_content)
-                paper.pdf_status = "completed"
+                # PDF processing completed - no specific status field needed
 
                 # テキスト抽出
                 text = self.pdf_processor.extract_text(pdf_content)
@@ -84,7 +84,7 @@ class SummarizerService:
                 paper.summary = summary
                 paper.summary_model = self._get_ai_model_name()
                 paper.summary_created_at = datetime.now(UTC)
-                paper.summary_status = "completed"
+                paper.is_summarized = True
 
                 # TODO: キーワードの保存（キーワードテーブルがある場合）
 
@@ -140,7 +140,7 @@ class SummarizerService:
         paper = session.query(Paper).filter_by(paper_id=paper_id).first()
         if paper:
             if task_type == "summary":
-                paper.summary_status = status
+                paper.is_summarized = (status == "completed")
 
     async def close(self) -> None:
         """リソースのクリーンアップ."""

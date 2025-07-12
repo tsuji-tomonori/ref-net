@@ -86,7 +86,16 @@ module = ["tests.*"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = ["refnet_shared.*"]
+module = [
+    "refnet_shared.*",
+    "celery.*",
+    "structlog.*",
+    "openai.*",
+    "anthropic.*",
+    "pymupdf.*",
+    "sqlalchemy.*",
+    "pytest.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

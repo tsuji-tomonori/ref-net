@@ -90,10 +90,22 @@ class Paper(Base):
     reference_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     influence_score: Mapped[float | None] = mapped_column(Float)  # 影響度スコア
 
-    # 処理状態
-    crawl_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
-    pdf_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
-    summary_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    # 処理状態 - 単純なboolフラグに変更
+    is_crawled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_summarized: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_generated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # 追加フィールド
+    crawl_depth: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # クロールの深さ
+    markdown_path: Mapped[str | None] = mapped_column(String(2048))  # 生成されたMarkdownのパス
+    error_message: Mapped[str | None] = mapped_column(Text)  # エラーメッセージ
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # リトライ回数
+
+    # 論文のURL
+    url: Mapped[str | None] = mapped_column(String(2048))  # 論文のURL
+
+    # 全文テキスト
+    full_text: Mapped[str | None] = mapped_column(Text)  # PDFから抽出した全文
 
     # PDF情報
     pdf_url: Mapped[str | None] = mapped_column(String(2048))
@@ -149,9 +161,12 @@ class Paper(Base):
         Index("idx_papers_title_fts", "title"),  # 全文検索用
         Index("idx_papers_year", "year"),
         Index("idx_papers_citation_count", "citation_count"),
-        Index("idx_papers_crawl_status", "crawl_status"),
-        Index("idx_papers_pdf_status", "pdf_status"),
-        Index("idx_papers_summary_status", "summary_status"),
+        Index("idx_papers_is_crawled", "is_crawled"),
+        Index("idx_papers_is_summarized", "is_summarized"),
+        Index("idx_papers_is_generated", "is_generated"),
+        Index("idx_papers_crawl_depth", "crawl_depth"),
+        Index("idx_papers_markdown_path", "markdown_path"),
+        Index("idx_papers_retry_count", "retry_count"),
         Index("idx_papers_created_at", "created_at"),
         Index("idx_papers_updated_at", "updated_at"),
         Index("idx_papers_last_crawled_at", "last_crawled_at"),
@@ -161,9 +176,8 @@ class Paper(Base):
         CheckConstraint("citation_count >= 0", name="check_citation_count_positive"),
         CheckConstraint("reference_count >= 0", name="check_reference_count_positive"),
         CheckConstraint("pdf_size >= 0", name="check_pdf_size_positive"),
-        CheckConstraint("crawl_status IN ('pending', 'running', 'completed', 'failed')", name="check_crawl_status"),
-        CheckConstraint("pdf_status IN ('pending', 'running', 'completed', 'failed', 'unavailable')", name="check_pdf_status"),
-        CheckConstraint("summary_status IN ('pending', 'running', 'completed', 'failed')", name="check_summary_status"),
+        CheckConstraint("crawl_depth >= 0", name="check_crawl_depth_positive"),
+        CheckConstraint("retry_count >= 0", name="check_retry_count_positive"),
     )
 
 

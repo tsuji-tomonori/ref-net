@@ -38,7 +38,7 @@ def collect_new_papers(max_papers: int = 100) -> dict[str, Any]:
     try:
         with db_manager.get_session() as session:
             # 未処理の論文IDを取得
-            pending_papers = session.query(Paper).filter(Paper.crawl_status == "pending").limit(max_papers).all()
+            pending_papers = session.query(Paper).filter(Paper.is_crawled.is_(False)).limit(max_papers).all()
 
             collected_count = 0
 
@@ -72,7 +72,7 @@ def process_pending_summaries(batch_size: int = 50) -> dict[str, Any]:
             # 要約が必要な論文を取得
             papers_to_summarize = (
                 session.query(Paper)
-                .filter(Paper.crawl_status == "completed", Paper.summary_status == "pending", Paper.pdf_url.isnot(None))
+                .filter(Paper.is_crawled.is_(True), Paper.is_summarized.is_(False), Paper.pdf_url.isnot(None))
                 .limit(batch_size)
                 .all()
             )
@@ -107,7 +107,7 @@ def generate_markdown_files(batch_size: int = 100) -> dict[str, Any]:
     try:
         with db_manager.get_session() as session:
             # Markdown生成が必要な論文を取得
-            papers_to_generate = session.query(Paper).filter(Paper.summary_status == "completed").limit(batch_size).all()
+            papers_to_generate = session.query(Paper).filter(Paper.is_summarized.is_(True)).limit(batch_size).all()
 
             generated_count = 0
 
@@ -200,7 +200,7 @@ def system_health_check() -> dict[str, Any]:
 
             # データベースメトリクス取得
             total_papers = session.query(Paper).count()
-            completed_summaries = session.query(Paper).filter(Paper.summary_status == "completed").count()
+            completed_summaries = session.query(Paper).filter(Paper.is_summarized.is_(True)).count()
 
             health_status["metrics"] = {
                 "total_papers": total_papers,
@@ -211,11 +211,20 @@ def system_health_check() -> dict[str, Any]:
             # メトリクスの更新
             status_counts: dict[str, dict[str, int]] = {"crawl": {}, "summary": {}, "pdf": {}}
 
-            for status_type in status_counts.keys():
-                column = getattr(Paper, f"{status_type}_status")
-                for status in ["pending", "completed", "failed"]:
-                    count = session.query(Paper).filter(column == status).count()
-                    status_counts[status_type][status] = count
+            # クロール状況の集計
+            status_counts["crawl"]["completed"] = session.query(Paper).filter(Paper.is_crawled.is_(True)).count()
+            status_counts["crawl"]["pending"] = session.query(Paper).filter(Paper.is_crawled.is_(False)).count()
+            status_counts["crawl"]["failed"] = 0  # ボールフィールドでは失敗状態は別途管理
+
+            # 要約状況の集計
+            status_counts["summary"]["completed"] = session.query(Paper).filter(Paper.is_summarized.is_(True)).count()
+            status_counts["summary"]["pending"] = session.query(Paper).filter(Paper.is_crawled.is_(True), Paper.is_summarized.is_(False)).count()
+            status_counts["summary"]["failed"] = 0  # ボールフィールドでは失敗状態は別途管理
+
+            # PDF生成状況の集計（現在は is_generated フィールドを使用）
+            status_counts["pdf"]["completed"] = session.query(Paper).filter(Paper.is_generated.is_(True)).count()
+            status_counts["pdf"]["pending"] = session.query(Paper).filter(Paper.is_summarized.is_(True), Paper.is_generated.is_(False)).count()
+            status_counts["pdf"]["failed"] = 0  # ボールフィールドでは失敗状態は別途管理
 
             MetricsCollector.update_paper_counts(total_papers, status_counts)
 
@@ -331,8 +340,8 @@ def generate_stats_report() -> dict[str, Any]:
             total_authors = session.query(Author).count()
 
             # 処理状況統計
-            crawl_completed = session.query(Paper).filter(Paper.crawl_status == "completed").count()
-            summary_completed = session.query(Paper).filter(Paper.summary_status == "completed").count()
+            crawl_completed = session.query(Paper).filter(Paper.is_crawled.is_(True)).count()
+            summary_completed = session.query(Paper).filter(Paper.is_summarized.is_(True)).count()
 
             # 最近1週間の処理数
             week_ago = datetime.utcnow() - timedelta(days=7)

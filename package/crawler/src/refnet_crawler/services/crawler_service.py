@@ -72,11 +72,11 @@ class CrawlerService:
             existing_paper.reference_count = (
                 paper_data.referenceCount or existing_paper.reference_count
             )
-            existing_paper.crawl_status = "completed"
+            existing_paper.is_crawled = True
         else:
             # 新規論文の作成
             paper_dict = paper_data.to_paper_create_dict()
-            paper_dict["crawl_status"] = "completed"
+            paper_dict["is_crawled"] = True
             paper = Paper(**paper_dict)
             session.add(paper)
 
@@ -257,7 +257,7 @@ class CrawlerService:
         paper = session.query(Paper).filter_by(paper_id=paper_id).first()
         if paper:
             if task_type == "crawl":
-                paper.crawl_status = status
+                paper.is_crawled = status == "completed"
 
     async def close(self) -> None:
         """リソースのクリーンアップ."""

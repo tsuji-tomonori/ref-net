@@ -61,9 +61,9 @@ def sample_papers(test_db: Session) -> list[Paper]:
             abstract=f"Abstract for paper {i}",
             year=2020 + i,
             citation_count=i * 10,
-            crawl_status="completed" if i < 3 else "pending",
-            pdf_status="completed" if i < 2 else "pending",
-            summary_status="completed" if i < 1 else "pending",
+            is_crawled=i < 3,
+            is_summarized=i < 1,
+            is_generated=i < 2,
         )
         test_db.add(paper)
         papers.append(paper)
@@ -195,9 +195,9 @@ def test_get_paper_status(client: TestClient, sample_papers: list[Paper]) -> Non
 
     data = response.json()
     assert data["paper_id"] == "paper-0"
-    assert data["crawl_status"] == "completed"
-    assert data["pdf_status"] == "completed"
-    assert data["summary_status"] == "completed"
+    assert data["is_crawled"] is True
+    assert data["is_summarized"] is True
+    assert data["is_generated"] is True
 
 
 def test_get_paper_status_not_found(client: TestClient) -> None:

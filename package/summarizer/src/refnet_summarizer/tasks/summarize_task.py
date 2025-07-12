@@ -1,15 +1,15 @@
 """要約生成関連タスク."""
 
-import asyncio
 from typing import Any
 
 import structlog
+from refnet_shared.celery_app import app as celery_app
 from refnet_shared.models.database import Paper
 from refnet_shared.models.database_manager import db_manager
 from sqlalchemy import and_
 
-from refnet_summarizer.celery_app import celery_app
-from refnet_summarizer.services.summarizer_service import SummarizerService
+from refnet_summarizer.clients.ai_client import create_ai_client
+from refnet_summarizer.processors.pdf_processor import PDFProcessor
 
 logger = structlog.get_logger(__name__)
 
@@ -26,8 +26,8 @@ def process_pending_summarizations(self: Any) -> dict:
                 session.query(Paper)
                 .filter(
                     and_(
-                        Paper.crawl_status == "completed",
-                        Paper.summary_status == "pending",
+                        Paper.is_crawled,
+                        ~Paper.is_summarized,
                     )
                 )
                 .limit(5)
@@ -52,23 +52,71 @@ def process_pending_summarizations(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name="refnet_summarizer.tasks.summarize_task.summarize_paper")  # type: ignore[misc]
-def summarize_paper(self: Any, paper_id: str) -> bool:
-    """論文要約タスク."""
-    logger.info("Starting paper summarization task", paper_id=paper_id)
+@celery_app.task(bind=True, name='refnet_summarizer.tasks.summarize_task.summarize_paper')  # type: ignore[misc]
+def summarize_paper(self: Any, paper_id: str) -> dict:
+    """論文を要約し、次の処理をトリガー"""
+    import asyncio
 
-    async def _summarize() -> bool:
-        summarizer = SummarizerService()
+    async def _summarize_async() -> dict:
         try:
-            return await summarizer.summarize_paper(paper_id)
-        finally:
-            # SummarizerServiceのcloseメソッドが存在しない場合は省略
-            pass
+            with db_manager.get_session() as session:
+                paper = session.query(Paper).filter(Paper.paper_id == paper_id).first()
+                if not paper:
+                    raise ValueError(f"Paper {paper_id} not found")
+
+                if not paper.pdf_url:
+                    # PDFがない場合はスキップ
+                    paper.is_summarized = True
+                    paper.summary = "PDF not available"
+                    session.commit()
+
+                    # Markdown生成をトリガー
+                    celery_app.send_task(
+                        'refnet_generator.tasks.generate_task.generate_markdown',
+                        args=[paper.paper_id],
+                        queue='generator'
+                    )
+                    return {'status': 'skipped', 'reason': 'no_pdf'}
+
+                # PDFをダウンロードして処理
+                pdf_processor = PDFProcessor()
+                pdf_content = await pdf_processor.download_pdf(paper.pdf_url)
+                if pdf_content is None:
+                    raise ValueError("Failed to download PDF")
+                text_content = pdf_processor.extract_text(pdf_content)
+
+                # AI要約を生成
+                ai_client = create_ai_client()
+                summary = await ai_client.generate_summary(text_content, max_tokens=1000)
+
+                # 要約を保存
+                paper.summary = summary
+                paper.full_text = text_content[:50000]  # 最初の50,000文字を保存
+                paper.is_summarized = True
+                session.commit()
+
+                # Markdown生成をトリガー
+                celery_app.send_task(
+                    'refnet_generator.tasks.generate_task.generate_markdown',
+                    args=[paper.paper_id],
+                    queue='generator'
+                )
+
+                result = {
+                    'status': 'success',
+                    'paper_id': paper.paper_id,
+                    'summary_length': len(summary)
+                }
+
+                logger.info("Paper summarization completed", **result)
+                return result
+
+        except Exception as e:
+            logger.error("Paper summarization failed", paper_id=paper_id, error=str(e))
+            raise
 
     try:
-        result = asyncio.run(_summarize())
-        logger.info("Paper summarization task completed", paper_id=paper_id, success=result)
-        return result
+        return asyncio.run(_summarize_async())
     except Exception as e:
-        logger.error("Paper summarization task failed", paper_id=paper_id, error=str(e))
-        raise self.retry(exc=e, countdown=60, max_retries=3) from e
+        self.retry(exc=e, countdown=120, max_retries=3)
+        return {}

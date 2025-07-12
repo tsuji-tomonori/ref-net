@@ -35,9 +35,9 @@ def sample_paper() -> Paper:
         reference_count=5,
         summary="This is a test summary",
         summary_model="gpt-4",
-        crawl_status="completed",
-        pdf_status="downloaded",
-        summary_status="completed",
+        is_crawled=True,
+        is_summarized=True,
+        is_generated=False,
         pdf_url="https://example.com/paper.pdf",
     )
     return paper

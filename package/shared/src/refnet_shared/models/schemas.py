@@ -45,9 +45,9 @@ class PaperResponse(PaperBase):
     """論文レスポンススキーマ."""
 
     paper_id: str
-    crawl_status: str
-    pdf_status: str
-    summary_status: str
+    is_crawled: bool
+    is_summarized: bool
+    is_generated: bool
     summary: str | None = None
     pdf_url: str | None = None
     venue_id: str | None = None

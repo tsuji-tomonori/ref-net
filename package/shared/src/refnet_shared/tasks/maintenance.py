@@ -26,7 +26,7 @@ def cleanup_old_data(self: Any) -> dict:
                 .filter(
                     and_(
                         Paper.created_at < cutoff_date,
-                        Paper.crawl_status == "pending",
+                        Paper.is_crawled.is_(False),
                     )
                 )
                 .delete(synchronize_session=False)
