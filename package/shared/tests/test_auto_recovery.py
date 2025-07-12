@@ -6,6 +6,9 @@ import pytest
 
 from refnet_shared.utils.auto_recovery import (
     AutoRecoveryManager,
+    RecoveryActionType,
+    RecoveryResult,
+    RecoveryStatus,
     check_system_health,
     get_auto_recovery_manager,
     trigger_recovery,
@@ -29,11 +32,19 @@ class TestAutoRecoveryManager:
     async def test_execute_recovery_success(self, mock_execute: AsyncMock) -> None:
         """回復実行成功テスト."""
         manager = AutoRecoveryManager()
-        mock_execute.return_value = MagicMock(status="success")
+        mock_execute.return_value = RecoveryResult(
+            action_type=RecoveryActionType.RESTART_DATABASE_CONNECTION,
+            name="Test Action",
+            status=RecoveryStatus.SUCCESS,
+            attempts=1,
+            duration=1.0
+        )
 
         result = await manager.execute_recovery("database_connection_failed", {"error": "test"})
 
         assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].status == RecoveryStatus.SUCCESS
         mock_execute.assert_called()
 
     @pytest.mark.asyncio
@@ -69,45 +80,59 @@ class TestAutoRecoveryManager:
             mock_client = MagicMock()
             mock_redis.from_url.return_value = mock_client
 
-            result = await manager._clear_redis_cache({"redis_url": "redis://test"})
+            # Mock redis operations
+            mock_client.info.return_value = {"used_memory": 1000}
+            mock_client.keys.return_value = ["cache:key1", "cache:key2"]
+
+            result = await manager._clear_redis_cache({"cache_patterns": ["cache:*"]})
 
             assert result is True
-            mock_client.flushdb.assert_called_once()
+            mock_client.keys.assert_called_with("cache:*")
+            mock_client.delete.assert_called_once_with("cache:key1", "cache:key2")
 
     @pytest.mark.asyncio
     async def test_clean_temp_files(self) -> None:
         """一時ファイルクリーンアップテスト."""
         manager = AutoRecoveryManager()
 
-        with patch("refnet_shared.utils.auto_recovery.shutil.rmtree"), \
-             patch("refnet_shared.utils.auto_recovery.os.path.exists", return_value=True):
+        with patch("tempfile.gettempdir", return_value="/tmp"), \
+             patch("pathlib.Path") as mock_path:
 
-            result = await manager._clean_temp_files({"temp_dir": "/tmp/test"})
+            # Mock Path objects and methods
+            mock_temp_path = MagicMock()
+            mock_temp_path.exists.return_value = True
+
+            mock_file_path = MagicMock()
+            mock_file_path.is_file.return_value = True
+            mock_file_path.stat.return_value.st_size = 1024
+            mock_temp_path.glob.return_value = [mock_file_path]
+
+            mock_path.return_value = mock_temp_path
+
+            result = await manager._clean_temp_files({"temp_dirs": ["/tmp/test"]})
 
             assert result is True
+            mock_file_path.unlink.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_restart_celery_worker(self) -> None:
         """Celeryワーカー再起動テスト."""
         manager = AutoRecoveryManager()
 
-        with patch("refnet_shared.utils.auto_recovery.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 0
+        result = await manager._restart_celery_worker({"worker_id": "test"})
 
-            result = await manager._restart_celery_worker({"worker_name": "test"})
-
-            assert result is True
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_reset_circuit_breaker(self) -> None:
         """サーキットブレーカーリセットテスト."""
         manager = AutoRecoveryManager()
-        manager.circuit_breakers["test"] = {"failures": 5, "last_failure": 1000}
+        manager.circuit_breakers["test"] = {"failure_count": 5, "last_failure": 1000}
 
         result = await manager._reset_circuit_breaker({"circuit_breaker_name": "test"})
 
         assert result is True
-        assert manager.circuit_breakers["test"]["failures"] == 0
+        assert manager.circuit_breakers["test"]["failure_count"] == 0
 
     def test_is_in_cooldown(self) -> None:
         """クールダウンチェックテスト."""
@@ -160,8 +185,24 @@ class TestAutoRecoveryManager:
         """回復統計取得テスト."""
         manager = AutoRecoveryManager()
 
+        # Empty history should return empty dict
         stats = manager.get_recovery_statistics()
+        assert isinstance(stats, dict)
+        assert stats == {}
 
+        # Add some history and test again
+        from refnet_shared.utils.auto_recovery import RecoveryActionType, RecoveryResult, RecoveryStatus
+        manager.recovery_history.append(
+            RecoveryResult(
+                action_type=RecoveryActionType.RESTART_SERVICE,
+                name="test_action",
+                status=RecoveryStatus.SUCCESS,
+                attempts=1,
+                duration=1.0
+            )
+        )
+
+        stats = manager.get_recovery_statistics()
         assert isinstance(stats, dict)
         assert "total_actions" in stats
         assert "success_rate" in stats
@@ -213,31 +254,27 @@ class TestTriggerRecovery:
     """trigger_recovery関数のテスト."""
 
     @pytest.mark.asyncio
-    @patch("refnet_shared.utils.auto_recovery.get_auto_recovery_manager")
+    @patch("refnet_shared.utils.auto_recovery._auto_recovery_manager")
     async def test_trigger_recovery_success(self, mock_manager: MagicMock) -> None:
         """回復トリガー成功テスト."""
-        mock_mgr = MagicMock()
-        mock_mgr.execute_recovery = AsyncMock(return_value=[])
-        mock_manager.return_value = mock_mgr
+        mock_manager.execute_recovery = AsyncMock(return_value=[])
 
         result = await trigger_recovery("database_connection_failed", {"error": "test"})
 
         assert isinstance(result, list)
-        mock_mgr.execute_recovery.assert_called_once_with("database_connection_failed", {"error": "test"})
+        mock_manager.execute_recovery.assert_called_once_with("database_connection_failed", {"error": "test"})
 
     @pytest.mark.asyncio
-    @patch("refnet_shared.utils.auto_recovery.get_auto_recovery_manager")
+    @patch("refnet_shared.utils.auto_recovery._auto_recovery_manager")
     async def test_trigger_recovery_with_context(self, mock_manager: MagicMock) -> None:
         """コンテキスト付き回復トリガーテスト."""
-        mock_mgr = MagicMock()
-        mock_mgr.execute_recovery = AsyncMock(return_value=[])
-        mock_manager.return_value = mock_mgr
+        mock_manager.execute_recovery = AsyncMock(return_value=[])
 
         context = {"severity": "high", "source": "test"}
         result = await trigger_recovery("high_memory", context)
 
         assert isinstance(result, list)
-        mock_mgr.execute_recovery.assert_called_once_with("high_memory", context)
+        mock_manager.execute_recovery.assert_called_once_with("high_memory", context)
 
 
 class TestGetAutoRecoveryManager:

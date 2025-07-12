@@ -18,3 +18,12 @@ repos:
       - id: debug-statements
       - id: mixed-line-ending
         args: ["--fix=lf"]
+
+  - repo: local
+    hooks:
+      - id: moon-check
+        name: moon check
+        entry: moon :check
+        language: system
+        pass_filenames: false
+        always_run: true
