@@ -1,14 +1,15 @@
 """論文クローリング関連タスク."""
 
-import asyncio
+import json
 from typing import Any
 
 import structlog
+from refnet_shared.celery_app import app as celery_app
 from refnet_shared.models.database import Paper
 from refnet_shared.models.database_manager import db_manager
+from refnet_shared.models.paper import Citation
 
-from refnet_crawler.celery_app import celery_app
-from refnet_crawler.services.crawler_service import CrawlerService
+from refnet_crawler.services.semantic_scholar_client import SemanticScholarClient
 
 logger = structlog.get_logger(__name__)
 
@@ -44,23 +45,95 @@ def check_and_crawl_new_papers(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name="refnet_crawler.tasks.crawl_task.crawl_paper")  # type: ignore[misc]
-def crawl_paper(self: Any, paper_id: str, hop_count: int = 0, max_hops: int = 3) -> bool:
-    """論文クローリングタスク."""
-    logger.info("Starting paper crawl task", paper_id=paper_id, hop_count=hop_count)
-
-    async def _crawl() -> bool:
-        crawler = CrawlerService()
-        try:
-            return await crawler.crawl_paper(paper_id, hop_count, max_hops)
-        finally:
-            # CrawlerServiceのcloseメソッドが存在しない場合は省略
-            pass
-
+@celery_app.task(bind=True, name='refnet_crawler.tasks.crawl_task.crawl_paper')
+def crawl_paper(self: Any, paper_id: str) -> dict:
+    """論文をクロールし、次の処理をトリガー"""
     try:
-        result = asyncio.run(_crawl())
-        logger.info("Paper crawl task completed", paper_id=paper_id, success=result)
-        return result
+        with db_manager.get_session() as session:
+            paper = session.query(Paper).filter(Paper.paper_id == paper_id).first()
+            if not paper:
+                raise ValueError(f"Paper {paper_id} not found")
+
+            # Semantic Scholar APIから論文情報を取得
+            client = SemanticScholarClient()
+            paper_data = client.get_paper(paper_id)
+
+            # 論文情報を更新
+            paper.title = paper_data['title']
+            paper.abstract = paper_data['abstract']
+            paper.authors = json.dumps(paper_data['authors'])
+            paper.year = paper_data['year']
+            paper.venue = paper_data['venue']
+            paper.pdf_url = paper_data.get('openAccessPdf', {}).get('url')
+            paper.is_crawled = True
+
+            # 参照論文を追加
+            for ref in paper_data.get('references', []):
+                if ref.get('paperId'):
+                    ref_paper = Paper(
+                        paper_id=ref['paperId'],
+                        title=ref.get('title', ''),
+                        is_crawled=False,
+                        is_summarized=False,
+                        is_generated=False
+                    )
+                    session.merge(ref_paper)  # 既存の場合は更新
+
+                    # 関係を作成
+                    citation = Citation(
+                        citing_paper_id=paper.paper_id,
+                        cited_paper_id=ref['paperId']
+                    )
+                    session.merge(citation)
+
+            # 被引用論文を追加
+            for cit in paper_data.get('citations', []):
+                if cit.get('paperId'):
+                    cit_paper = Paper(
+                        paper_id=cit['paperId'],
+                        title=cit.get('title', ''),
+                        is_crawled=False,
+                        is_summarized=False,
+                        is_generated=False
+                    )
+                    session.merge(cit_paper)
+
+                    # 関係を作成
+                    citation = Citation(
+                        citing_paper_id=cit['paperId'],
+                        cited_paper_id=paper.paper_id
+                    )
+                    session.merge(citation)
+
+            session.commit()
+
+            # PDFが利用可能な場合、要約タスクをトリガー
+            if paper.pdf_url:
+                celery_app.send_task(
+                    'refnet_summarizer.tasks.summarize_task.summarize_paper',
+                    args=[paper.paper_id],
+                    queue='summarizer'
+                )
+            else:
+                # PDFがない場合は直接Markdown生成へ
+                celery_app.send_task(
+                    'refnet_generator.tasks.generate_task.generate_markdown',
+                    args=[paper.paper_id],
+                    queue='generator'
+                )
+
+            result = {
+                'status': 'success',
+                'paper_id': paper.paper_id,
+                'title': paper.title,
+                'references_count': len(paper_data.get('references', [])),
+                'citations_count': len(paper_data.get('citations', []))
+            }
+
+            logger.info("Paper crawl completed", **result)
+            return result
+
     except Exception as e:
-        logger.error("Paper crawl task failed", paper_id=paper_id, error=str(e))
-        raise self.retry(exc=e, countdown=60, max_retries=3) from e
+        logger.error("Paper crawl failed", paper_id=paper_id, error=str(e))
+        self.retry(exc=e, countdown=60, max_retries=3)
+        return {}

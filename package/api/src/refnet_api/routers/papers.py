@@ -2,8 +2,13 @@
 
 
 
+import re
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from refnet_shared.celery_app import app as celery_app
+from refnet_shared.models.paper import Paper
 from refnet_shared.models.schemas import PaperCreate, PaperRelationResponse, PaperUpdate
 from sqlalchemy.orm import Session
 
@@ -14,7 +19,6 @@ from refnet_api.responses import (
     PaperCreateResponse,
     PaperListResponse,
     PaperRelationsResponse,
-    PaperStatusResponse,
 )
 from refnet_api.responses import (
     PaperResponse as APIPaperResponse,
@@ -23,6 +27,20 @@ from refnet_api.services.paper_service import PaperService
 
 logger = structlog.get_logger(__name__)
 router = APIRouter()
+
+
+class PaperCrawlRequest(BaseModel):
+    paper_url: str
+
+
+def extract_paper_id(paper_url: str) -> str:
+    """Semantic Scholar URLから論文IDを抽出"""
+    # Semantic Scholar URL形式: https://www.semanticscholar.org/paper/{paper_id}
+    pattern = r'semanticscholar\.org/paper/([a-f0-9]+)'
+    match = re.search(pattern, paper_url)
+    if not match:
+        raise ValueError(f"Invalid Semantic Scholar URL: {paper_url}")
+    return match.group(1)
 
 
 @router.get("/", response_model=PaperListResponse)
@@ -113,20 +131,20 @@ async def process_paper(paper_id: str, db: Session = Depends(get_db)) -> Message
 
 
 @router.get("/{paper_id}/status")
-async def get_paper_status(paper_id: str, db: Session = Depends(get_db)) -> PaperStatusResponse:
-    """論文処理状態取得."""
-    service = PaperService(db)
-
-    paper = service.get_paper(paper_id)
+async def get_paper_status(paper_id: str, db: Session = Depends(get_db)) -> dict:
+    """論文の処理状況を取得"""
+    paper = db.query(Paper).filter(Paper.paper_id == paper_id).first()
     if not paper:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
+        raise HTTPException(status_code=404, detail="Paper not found")
 
-    return PaperStatusResponse(
-        paper_id=paper_id,
-        crawl_status=paper.crawl_status,
-        pdf_status=paper.pdf_status,
-        summary_status=paper.summary_status,
-    )
+    return {
+        "paper_id": paper.paper_id,
+        "is_crawled": paper.is_crawled,
+        "is_summarized": paper.is_summarized,
+        "is_generated": paper.is_generated,
+        "created_at": paper.created_at,
+        "updated_at": paper.updated_at
+    }
 
 
 @router.get("/{paper_id}/relations")
@@ -162,3 +180,57 @@ async def get_paper_relations(
         citations=citations,
         related_papers=related_papers,
     )
+
+
+@router.post("/crawl")
+async def trigger_paper_crawl(
+    request: PaperCrawlRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """論文のクロールをトリガー"""
+    try:
+        # Semantic Scholar Paper IDを抽出
+        paper_id = extract_paper_id(request.paper_url)
+
+        # データベースに論文エントリを作成
+        existing_paper = db.query(Paper).filter(Paper.paper_id == paper_id).first()
+        if existing_paper:
+            return {
+                "status": "already_exists",
+                "paper_id": paper_id,
+                "message": "Paper already exists in database"
+            }
+
+        paper = Paper(
+            paper_id=paper_id,
+            url=request.paper_url,
+            is_crawled=False,
+            is_summarized=False,
+            is_generated=False
+        )
+        db.add(paper)
+        db.commit()
+
+        # Crawlerタスクをキュー
+        task = celery_app.send_task(
+            'refnet_crawler.tasks.crawl_task.crawl_paper',
+            args=[paper.paper_id],
+            queue='crawler'
+        )
+
+        logger.info(
+            "Paper crawl triggered",
+            paper_id=paper.paper_id,
+            task_id=task.id,
+            user_id=current_user["user_id"]
+        )
+
+        return {
+            "status": "queued",
+            "paper_id": paper.paper_id,
+            "task_id": task.id
+        }
+    except Exception as e:
+        logger.error("Failed to trigger paper crawl", error=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
