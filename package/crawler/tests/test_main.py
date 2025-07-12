@@ -11,7 +11,7 @@ from refnet_crawler.main import crawl_paper, main
 class TestCrawlPaper:
     """論文クローリング機能のテスト."""
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     async def test_crawl_paper_success(self) -> None:
         """論文クローリング成功テスト."""
         with patch('refnet_crawler.main.CrawlerService') as mock_service_class:
@@ -26,7 +26,7 @@ class TestCrawlPaper:
             mock_service.crawl_paper.assert_called_once_with("test-paper-1", 1, 2)
             mock_service.close.assert_called_once()
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     async def test_crawl_paper_failure(self) -> None:
         """論文クローリング失敗テスト."""
         with patch('refnet_crawler.main.CrawlerService') as mock_service_class:
@@ -41,7 +41,7 @@ class TestCrawlPaper:
             mock_service.crawl_paper.assert_called_once_with("test-paper-1", 0, 3)
             mock_service.close.assert_called_once()
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     async def test_crawl_paper_exception(self) -> None:
         """論文クローリング例外テスト."""
         with patch('refnet_crawler.main.CrawlerService') as mock_service_class:

@@ -44,9 +44,9 @@
 
 ## メタデータ
 
-- **クロール状態**: {{ paper.crawl_status }}
-- **PDF状態**: {{ paper.pdf_status }}
-- **要約状態**: {{ paper.summary_status }}
+- **クロール済み**: {{ paper.is_crawled }}
+- **要約済み**: {{ paper.is_summarized }}
+- **生成済み**: {{ paper.is_generated }}
 - **生成日時**: {{ generated_at }}
 
 {% if paper.pdf_url %}

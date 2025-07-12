@@ -66,37 +66,58 @@ class TestGenerateTask:
             with pytest.raises(Exception, match="Retry exception"):
                 generate_pending_markdowns()
 
+    @patch("refnet_generator.tasks.generate_task.db_manager")
     @patch("refnet_generator.tasks.generate_task.GeneratorService")
-    def test_generate_markdown_success(self, mock_generator_service: MagicMock) -> None:
+    def test_generate_markdown_success(
+        self, mock_generator_service: MagicMock, mock_db_manager: MagicMock
+    ) -> None:
         """generate_markdown正常系テスト."""
-        # モックの設定
+        # データベースセッションのモック
+        mock_session = MagicMock()
+        mock_db_manager.get_session.return_value.__enter__.return_value = mock_session
+
+        # 論文データのモック
+        mock_paper = MagicMock()
+        mock_paper.paper_id = "test-paper-id"
+        mock_paper.title = "Test Paper"
+        mock_paper.crawl_depth = 0  # 明示的に数値を設定
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_paper
+
+        # 関連論文のモック
+        mock_session.query.return_value.join.return_value.filter.return_value.all.return_value = []
+
+        # GeneratorServiceのモック
         mock_service = MagicMock()
         mock_generator_service.return_value = mock_service
+        mock_service.generate_paper_markdown_sync.return_value = "# Test Markdown"
 
-        async def mock_generate_markdown(paper_id: str) -> bool:
-            return True
+        with patch("refnet_generator.tasks.generate_task.Path.mkdir"), \
+             patch("refnet_generator.tasks.generate_task.open", create=True):
+            result = generate_markdown("test-paper-id")
 
-        mock_service.generate_markdown = mock_generate_markdown
+        assert result["status"] == "success"
 
-        result = generate_markdown("test-paper-id")
-
-        assert result is True
-
+    @patch("refnet_generator.tasks.generate_task.db_manager")
     @patch("refnet_generator.tasks.generate_task.GeneratorService")
-    def test_generate_markdown_failure(self, mock_generator_service: MagicMock) -> None:
-        """generate_markdown失敗テスト."""
-        # モックの設定
-        mock_service = MagicMock()
-        mock_generator_service.return_value = mock_service
+    def test_generate_markdown_failure(
+        self, mock_generator_service: MagicMock, mock_db_manager: MagicMock
+    ) -> None:
+        """generate_markdown失敗テスト（論文が見つからない場合）."""
+        # データベースセッションのモック
+        mock_session = MagicMock()
+        mock_db_manager.get_session.return_value.__enter__.return_value = mock_session
 
-        async def mock_generate_markdown(paper_id: str) -> bool:
-            return False
+        # 論文が見つからない場合
+        mock_session.query.return_value.filter.return_value.first.return_value = None
 
-        mock_service.generate_markdown = mock_generate_markdown
+        # retryをモック
+        with patch(
+            "refnet_generator.tasks.generate_task.generate_markdown.retry"
+        ) as mock_retry:
+            mock_retry.side_effect = Exception("Retry exception")
 
-        result = generate_markdown("test-paper-id")
-
-        assert result is False
+            with pytest.raises(Exception, match="Retry exception"):
+                generate_markdown("test-paper-id")
 
     @patch("refnet_generator.tasks.generate_task.GeneratorService")
     def test_generate_markdown_exception(self, mock_generator_service: MagicMock) -> None:

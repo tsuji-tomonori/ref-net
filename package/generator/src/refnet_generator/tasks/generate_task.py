@@ -7,9 +7,8 @@ from typing import Any
 
 import structlog
 from refnet_shared.celery_app import app as celery_app
-from refnet_shared.models.database import Paper
+from refnet_shared.models.database import Paper, PaperRelation
 from refnet_shared.models.database_manager import db_manager
-from refnet_shared.models.paper import Citation
 from sqlalchemy import and_
 
 from refnet_generator.services.generator_service import GeneratorService
@@ -27,8 +26,8 @@ def generate_pending_markdowns(self: Any) -> dict:
                 session.query(Paper)
                 .filter(
                     and_(
-                        Paper.summary_status == "completed",
-                        Paper.pdf_status != "completed",
+                        Paper.is_summarized.is_(True),
+                        Paper.is_generated.is_(False),
                     )
                 )
                 .limit(10)
@@ -64,13 +63,21 @@ def generate_markdown(self: Any, paper_id: str) -> dict:
                 raise ValueError(f"Paper {paper_id} not found")
 
             # 関連論文情報を取得
+            # 参照論文を取得（この論文が参照している論文）
             references = session.query(Paper).join(
-                Citation, Citation.cited_paper_id == Paper.paper_id
-            ).filter(Citation.citing_paper_id == paper_id).all()
+                PaperRelation, PaperRelation.target_paper_id == Paper.paper_id
+            ).filter(
+                PaperRelation.source_paper_id == paper_id,
+                PaperRelation.relation_type == "reference"
+            ).all()
 
+            # 引用論文を取得（この論文を引用している論文）
             citations = session.query(Paper).join(
-                Citation, Citation.citing_paper_id == Paper.paper_id
-            ).filter(Citation.cited_paper_id == paper_id).all()
+                PaperRelation, PaperRelation.source_paper_id == Paper.paper_id
+            ).filter(
+                PaperRelation.target_paper_id == paper_id,
+                PaperRelation.relation_type == "citation"
+            ).all()
 
             # Markdown生成
             generator = GeneratorService()

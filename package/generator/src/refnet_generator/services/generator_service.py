@@ -173,7 +173,7 @@ class GeneratorService:
         # 全論文のリスト取得
         papers = (
             session.query(Paper)
-            .filter(Paper.summary_status == "completed")
+            .filter(Paper.is_summarized.is_(True))
             .order_by(Paper.citation_count.desc())
             .limit(100)
             .all()
@@ -183,7 +183,7 @@ class GeneratorService:
         stats = {
             "total_papers": session.query(Paper).count(),
             "completed_papers": session.query(Paper)
-            .filter(Paper.summary_status == "completed")
+            .filter(Paper.is_summarized.is_(True))
             .count(),
             "generated_at": datetime.now().isoformat(),
         }

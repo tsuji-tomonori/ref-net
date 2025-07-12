@@ -1,13 +1,11 @@
 """論文クローリング関連タスク."""
 
-import json
 from typing import Any
 
 import structlog
 from refnet_shared.celery_app import app as celery_app
 from refnet_shared.models.database import Paper
 from refnet_shared.models.database_manager import db_manager
-from refnet_shared.models.paper import Citation
 
 from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 
@@ -22,7 +20,7 @@ def check_and_crawl_new_papers(self: Any) -> dict:
             # 未処理の論文を取得
             pending_papers = (
                 session.query(Paper)
-                .filter(Paper.crawl_status == "pending")
+                .filter(Paper.is_crawled.is_(False))
                 .limit(10)
                 .all()
             )
@@ -48,91 +46,55 @@ def check_and_crawl_new_papers(self: Any) -> dict:
 @celery_app.task(bind=True, name='refnet_crawler.tasks.crawl_task.crawl_paper')  # type: ignore[misc]
 def crawl_paper(self: Any, paper_id: str) -> dict:
     """論文をクロールし、次の処理をトリガー"""
-    try:
-        with db_manager.get_session() as session:
-            paper = session.query(Paper).filter(Paper.paper_id == paper_id).first()
-            if not paper:
-                raise ValueError(f"Paper {paper_id} not found")
+    import asyncio
 
-            # Semantic Scholar APIから論文情報を取得
-            client = SemanticScholarClient()
-            paper_data = client.get_paper(paper_id)
+    async def _crawl_paper_async() -> dict:
+        try:
+            with db_manager.get_session() as session:
+                paper = session.query(Paper).filter(Paper.paper_id == paper_id).first()
+                if not paper:
+                    raise ValueError(f"Paper {paper_id} not found")
 
-            # 論文情報を更新
-            paper.title = paper_data['title']
-            paper.abstract = paper_data['abstract']
-            paper.authors = json.dumps(paper_data['authors'])
-            paper.year = paper_data['year']
-            paper.venue = paper_data['venue']
-            paper.pdf_url = paper_data.get('openAccessPdf', {}).get('url')
-            paper.is_crawled = True
+                # Semantic Scholar APIから論文情報を取得
+                client = SemanticScholarClient()
+                paper_data = await client.get_paper(paper_id)
+                if not paper_data:
+                    raise ValueError(f"Failed to fetch paper data for {paper_id}")
 
-            # 参照論文を追加
-            for ref in paper_data.get('references', []):
-                if ref.get('paperId'):
-                    ref_paper = Paper(
-                        paper_id=ref['paperId'],
-                        title=ref.get('title', ''),
-                        is_crawled=False,
-                        is_summarized=False,
-                        is_generated=False
-                    )
-                    session.merge(ref_paper)  # 既存の場合は更新
+                # 論文情報を更新
+                paper.title = paper_data.title or paper.title
+                paper.abstract = paper_data.abstract or paper.abstract
+                paper.year = paper_data.year or paper.year
+                paper.citation_count = paper_data.citationCount or paper.citation_count
+                paper.reference_count = paper_data.referenceCount or paper.reference_count
+                paper.is_crawled = True
 
-                    # 関係を作成
-                    citation = Citation(
-                        citing_paper_id=paper.paper_id,
-                        cited_paper_id=ref['paperId']
-                    )
-                    session.merge(citation)
+                session.commit()
 
-            # 被引用論文を追加
-            for cit in paper_data.get('citations', []):
-                if cit.get('paperId'):
-                    cit_paper = Paper(
-                        paper_id=cit['paperId'],
-                        title=cit.get('title', ''),
-                        is_crawled=False,
-                        is_summarized=False,
-                        is_generated=False
-                    )
-                    session.merge(cit_paper)
-
-                    # 関係を作成
-                    citation = Citation(
-                        citing_paper_id=cit['paperId'],
-                        cited_paper_id=paper.paper_id
-                    )
-                    session.merge(citation)
-
-            session.commit()
-
-            # PDFが利用可能な場合、要約タスクをトリガー
-            if paper.pdf_url:
+                # 要約タスクをトリガー
                 celery_app.send_task(
                     'refnet_summarizer.tasks.summarize_task.summarize_paper',
                     args=[paper.paper_id],
                     queue='summarizer'
                 )
-            else:
-                # PDFがない場合は直接Markdown生成へ
-                celery_app.send_task(
-                    'refnet_generator.tasks.generate_task.generate_markdown',
-                    args=[paper.paper_id],
-                    queue='generator'
-                )
 
-            result = {
-                'status': 'success',
-                'paper_id': paper.paper_id,
-                'title': paper.title,
-                'references_count': len(paper_data.get('references', [])),
-                'citations_count': len(paper_data.get('citations', []))
-            }
+                result = {
+                    'status': 'success',
+                    'paper_id': paper.paper_id,
+                    'title': paper.title,
+                    'citation_count': paper_data.citationCount or 0,
+                    'reference_count': paper_data.referenceCount or 0
+                }
 
-            logger.info("Paper crawl completed", **result)
-            return result
+                logger.info("Paper crawl completed", **result)
+                return result
 
+        except Exception as e:
+            logger.error("Paper crawl failed", paper_id=paper_id, error=str(e))
+            raise e
+
+    try:
+        return asyncio.run(_crawl_paper_async())
     except Exception as e:
         logger.error("Paper crawl failed", paper_id=paper_id, error=str(e))
         self.retry(exc=e, countdown=60, max_retries=3)

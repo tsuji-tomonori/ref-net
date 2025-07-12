@@ -26,11 +26,10 @@ def mock_paper():  # type: ignore
     paper.pdf_url = "https://example.com/paper.pdf"
     paper.pdf_hash = None
     paper.pdf_size = None
-    paper.pdf_status = None
     paper.summary = None
     paper.summary_model = None
     paper.summary_created_at = None
-    paper.summary_status = None
+    paper.is_summarized = False
     return paper
 
 
@@ -107,9 +106,9 @@ async def test_summarize_paper_success(
         assert result is True
         assert mock_paper.pdf_hash == "mock-hash"
         assert mock_paper.pdf_size == len(mock_pdf_content)
-        assert mock_paper.pdf_status == "completed"
+        assert mock_paper.is_summarized is True
         assert mock_paper.summary == mock_summary
-        assert mock_paper.summary_status == "completed"
+        assert mock_paper.is_summarized is True
         mock_session.commit.assert_called_once()
 
 
@@ -339,7 +338,7 @@ async def test_update_processing_status_no_queue():  # type: ignore
     )
 
     # 論文のステータスが更新されることを確認
-    assert mock_paper.summary_status == "completed"
+    assert mock_paper.is_summarized is True
 
 
 @pytest.mark.asyncio

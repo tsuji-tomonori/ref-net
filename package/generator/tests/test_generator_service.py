@@ -9,7 +9,7 @@ from refnet_shared.models.database import Author, Paper, PaperRelation
 from refnet_generator.services.generator_service import GeneratorService
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def mock_settings() -> Mock:
     """設定のモック."""
     settings = Mock()
@@ -17,13 +17,13 @@ def mock_settings() -> Mock:
     return settings
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def mock_db_manager() -> Mock:
     """データベースマネージャーのモック."""
     return Mock()
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def sample_paper() -> Paper:
     """サンプル論文データ."""
     paper = Paper(
@@ -35,15 +35,15 @@ def sample_paper() -> Paper:
         reference_count=5,
         summary="This is a test summary",
         summary_model="gpt-4",
-        crawl_status="completed",
-        pdf_status="downloaded",
-        summary_status="completed",
+        is_crawled=True,
+        is_summarized=True,
+        is_generated=False,
         pdf_url="https://example.com/paper.pdf",
     )
     return paper
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def sample_authors() -> list[Author]:
     """サンプル著者データ."""
     return [
@@ -52,7 +52,7 @@ def sample_authors() -> list[Author]:
     ]
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture
 def sample_relations() -> list[PaperRelation]:
     """サンプル関係データ."""
     return [
@@ -72,7 +72,7 @@ def sample_relations() -> list[PaperRelation]:
 class TestGeneratorService:
     """GeneratorServiceのテストクラス."""
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     @patch("refnet_generator.services.generator_service.load_environment_settings")
     @patch("refnet_generator.services.generator_service.db_manager")
     async def test_generate_markdown_success(
@@ -119,7 +119,7 @@ class TestGeneratorService:
         assert (output_path / "paper123_network.md").exists()
         assert (output_path / "index.md").exists()
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     @patch("refnet_generator.services.generator_service.load_environment_settings")
     @patch("refnet_generator.services.generator_service.db_manager")
     async def test_generate_markdown_paper_not_found(
@@ -149,7 +149,7 @@ class TestGeneratorService:
         assert result is False
         assert not (tmp_path / "nonexistent.md").exists()
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     @patch("refnet_generator.services.generator_service.load_environment_settings")
     @patch("refnet_generator.services.generator_service.db_manager")
     async def test_generate_markdown_exception(

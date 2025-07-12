@@ -167,7 +167,7 @@ class TestCeleryApp:
 class TestTaskIntegration:
     """タスク統合テスト."""
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     async def test_internal_crawl_function(self) -> None:
         """内部クローリング関数のテスト."""
         with patch('refnet_crawler.tasks.CrawlerService') as mock_service_class:
@@ -190,7 +190,7 @@ class TestTaskIntegration:
             mock_service.crawl_paper.assert_called_once_with("test-paper", 0, 3)
             mock_service.close.assert_called_once()
 
-    @pytest.mark.asyncio  # type: ignore[misc]
+    @pytest.mark.asyncio
     async def test_internal_crawl_function_exception(self) -> None:
         """内部クローリング関数例外テスト."""
         with patch('refnet_crawler.tasks.CrawlerService') as mock_service_class:
