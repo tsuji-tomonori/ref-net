@@ -35,7 +35,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True, name="refnet.crawler.crawl_paper")  # type: ignore
+@celery_app.task(bind=True, name="refnet.crawler.crawl_paper")  # type: ignore[misc]
 def crawl_paper_task(self: Any, paper_id: str, hop_count: int = 0, max_hops: int = 3) -> bool:
     """論文クローリングタスク."""
     logger.info("Starting paper crawl task", paper_id=paper_id, hop_count=hop_count)
@@ -56,7 +56,7 @@ def crawl_paper_task(self: Any, paper_id: str, hop_count: int = 0, max_hops: int
         raise self.retry(exc=e, countdown=60, max_retries=3) from e
 
 
-@celery_app.task(name="refnet.crawler.batch_crawl")  # type: ignore
+@celery_app.task(name="refnet.crawler.batch_crawl")  # type: ignore[misc]
 def batch_crawl_task(paper_ids: list[str], hop_count: int = 0, max_hops: int = 3) -> dict:
     """バッチクローリングタスク."""
     logger.info("Starting batch crawl task", paper_count=len(paper_ids))

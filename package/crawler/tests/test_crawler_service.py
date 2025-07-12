@@ -10,7 +10,7 @@ from refnet_crawler.models.paper_data import SemanticScholarPaper
 from refnet_crawler.services.crawler_service import CrawlerService
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def mock_paper_data() -> dict[str, Any]:
     """モック論文データ."""
     return {
@@ -28,13 +28,13 @@ def mock_paper_data() -> dict[str, Any]:
     }
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def mock_semantic_scholar_paper(mock_paper_data: dict[str, Any]) -> SemanticScholarPaper:
     """モックSemanticScholarPaperオブジェクト."""
     return SemanticScholarPaper.model_validate(mock_paper_data)
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def mock_db_session() -> Mock:
     """モックDBセッション."""
     session = Mock()
@@ -55,7 +55,7 @@ class TestCrawlerService:
             assert service.client is not None
             mock_client.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_paper_success(
         self,
         mock_semantic_scholar_paper: SemanticScholarPaper,
@@ -78,7 +78,7 @@ class TestCrawlerService:
                 assert result is True
                 mock_client.get_paper.assert_called_once_with("test-paper-1")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_paper_not_found(self, mock_db_session: Mock) -> None:
         """論文未発見テスト."""
         with patch(
@@ -93,7 +93,7 @@ class TestCrawlerService:
 
             assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_paper_exception(self, mock_db_session: Mock) -> None:
         """論文クローリング例外テスト."""
         with patch(
@@ -111,7 +111,7 @@ class TestCrawlerService:
 
                 assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_save_paper_data_new_paper(
         self,
         mock_semantic_scholar_paper: SemanticScholarPaper,
@@ -131,7 +131,7 @@ class TestCrawlerService:
                 mock_db_session.add.assert_called_with(mock_paper)
                 mock_db_session.commit.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_save_paper_data_existing_paper(
         self,
         mock_semantic_scholar_paper: SemanticScholarPaper,
@@ -160,7 +160,7 @@ class TestCrawlerService:
             assert existing_paper.reference_count == 5
             assert existing_paper.crawl_status == "completed"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_save_authors(self, mock_db_session: Mock) -> None:
         """著者情報保存テスト."""
         authors_data = [
@@ -180,7 +180,7 @@ class TestCrawlerService:
                 # authorIdがNoneの著者は処理されない
                 assert mock_author_class.call_count == 2
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_citations(self, mock_db_session: Mock) -> None:
         """引用論文収集テスト."""
         citations = [
@@ -207,7 +207,7 @@ class TestCrawlerService:
                         assert mock_save_relation.call_count == 2
                         assert mock_queue.call_count == 2
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_references(self, mock_db_session: Mock) -> None:
         """参考文献収集テスト."""
         references = [
@@ -234,7 +234,7 @@ class TestCrawlerService:
                         assert mock_save_relation.call_count == 2
                         assert mock_queue.call_count == 2
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_save_paper_relation_new(self, mock_db_session: Mock) -> None:
         """新規論文関係保存テスト."""
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
@@ -255,7 +255,7 @@ class TestCrawlerService:
 
                 mock_db_session.add.assert_called_with(mock_relation)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_save_paper_relation_existing(self, mock_db_session: Mock) -> None:
         """既存論文関係スキップテスト."""
         existing_relation = Mock()
@@ -275,7 +275,7 @@ class TestCrawlerService:
 
             mock_db_session.add.assert_not_called()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_should_crawl_recursively(self) -> None:
         """再帰的収集判定テスト."""
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
@@ -300,7 +300,7 @@ class TestCrawlerService:
             result = await service._should_crawl_recursively(none_paper, 1, 3)
             assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_queue_paper_for_crawling_new(self, mock_db_session: Mock) -> None:
         """新規論文キューイングテスト."""
         with patch('refnet_crawler.services.crawler_service.SemanticScholarClient'):
@@ -315,7 +315,7 @@ class TestCrawlerService:
 
                 mock_db_session.add.assert_called_with(mock_queue)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_queue_paper_for_crawling_existing(self, mock_db_session: Mock) -> None:
         """既存論文キューイングスキップテスト."""
         existing_queue = Mock()
@@ -329,7 +329,7 @@ class TestCrawlerService:
 
             mock_db_session.add.assert_not_called()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_update_processing_status_with_queue(self, mock_db_session: Mock) -> None:
         """処理状態更新（キューあり）テスト."""
         queue_item = Mock()
@@ -356,7 +356,7 @@ class TestCrawlerService:
             assert queue_item.retry_count == 1
             assert paper.crawl_status == "failed"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_update_processing_status_no_queue(self, mock_db_session: Mock) -> None:
         """処理状態更新（キューなし）テスト."""
         paper = Mock()
@@ -377,7 +377,7 @@ class TestCrawlerService:
 
             assert paper.crawl_status == "completed"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_close(self) -> None:
         """リソースクリーンアップテスト."""
         with patch(
@@ -392,7 +392,7 @@ class TestCrawlerService:
 
             mock_client.close.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_citations_exception(self, mock_db_session: Mock) -> None:
         """引用論文収集例外テスト."""
         with patch(
@@ -406,7 +406,7 @@ class TestCrawlerService:
             # 例外が発生しても処理が継続することを確認
             await service._crawl_citations(mock_db_session, "test-paper-1", 1, 3)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_crawl_references_exception(self, mock_db_session: Mock) -> None:
         """参考文献収集例外テスト."""
         with patch(

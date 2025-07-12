@@ -10,13 +10,13 @@ from refnet_shared.exceptions import ExternalAPIError
 from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def client() -> SemanticScholarClient:
     """テスト用クライアント."""
     return SemanticScholarClient()
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def mock_paper_data() -> dict[str, Any]:
     """モック論文データ."""
     return {
@@ -34,7 +34,7 @@ def mock_paper_data() -> dict[str, Any]:
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_success(
     client: SemanticScholarClient,
     mock_paper_data: dict[str, Any],
@@ -54,7 +54,7 @@ async def test_get_paper_success(
         assert result.citationCount == 10
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
     """論文取得（存在しない）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -71,7 +71,7 @@ async def test_get_paper_not_found(client: SemanticScholarClient) -> None:
         assert result is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations(
     client: SemanticScholarClient,
     mock_paper_data: dict[str, Any],
@@ -95,7 +95,7 @@ async def test_get_paper_citations(
         assert result[0].paperId == "test-paper-1"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers(
     client: SemanticScholarClient,
     mock_paper_data: dict[str, Any],
@@ -117,7 +117,7 @@ async def test_search_papers(
         assert result[0].paperId == "test-paper-1"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_empty_response(client: SemanticScholarClient) -> None:
     """論文取得（空レスポンス）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -131,7 +131,7 @@ async def test_get_paper_empty_response(client: SemanticScholarClient) -> None:
         assert result is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_rate_limit(client: SemanticScholarClient) -> None:
     """論文取得（レート制限）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -147,7 +147,7 @@ async def test_get_paper_rate_limit(client: SemanticScholarClient) -> None:
             await client.get_paper("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_server_error(client: SemanticScholarClient) -> None:
     """論文取得（サーバーエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -163,7 +163,7 @@ async def test_get_paper_server_error(client: SemanticScholarClient) -> None:
             await client.get_paper("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_unexpected_error(client: SemanticScholarClient) -> None:
     """論文取得（予期しないエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -173,7 +173,7 @@ async def test_get_paper_unexpected_error(client: SemanticScholarClient) -> None
             await client.get_paper("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_custom_fields(client: SemanticScholarClient) -> None:
     """論文取得（カスタムフィールド）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -189,7 +189,7 @@ async def test_get_paper_custom_fields(client: SemanticScholarClient) -> None:
         mock_get.assert_called_with("/paper/test-paper-1", params={"fields": "paperId,title"})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations_empty(client: SemanticScholarClient) -> None:
     """引用論文取得（空）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -203,7 +203,7 @@ async def test_get_paper_citations_empty(client: SemanticScholarClient) -> None:
         assert len(result) == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations_not_found(client: SemanticScholarClient) -> None:
     """引用論文取得（存在しない）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -220,7 +220,7 @@ async def test_get_paper_citations_not_found(client: SemanticScholarClient) -> N
         assert result == []
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations_rate_limit(client: SemanticScholarClient) -> None:
     """引用論文取得（レート制限）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -236,7 +236,7 @@ async def test_get_paper_citations_rate_limit(client: SemanticScholarClient) -> 
             await client.get_paper_citations("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations_server_error(client: SemanticScholarClient) -> None:
     """引用論文取得（サーバーエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -252,7 +252,7 @@ async def test_get_paper_citations_server_error(client: SemanticScholarClient) -
             await client.get_paper_citations("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_citations_unexpected_error(client: SemanticScholarClient) -> None:
     """引用論文取得（予期しないエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -262,7 +262,7 @@ async def test_get_paper_citations_unexpected_error(client: SemanticScholarClien
             await client.get_paper_citations("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references(
     client: SemanticScholarClient,
     mock_paper_data: dict[str, Any],
@@ -286,7 +286,7 @@ async def test_get_paper_references(
         assert result[0].paperId == "test-paper-1"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references_empty(client: SemanticScholarClient) -> None:
     """参考文献取得（空）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -300,7 +300,7 @@ async def test_get_paper_references_empty(client: SemanticScholarClient) -> None
         assert len(result) == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references_not_found(client: SemanticScholarClient) -> None:
     """参考文献取得（存在しない）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -317,7 +317,7 @@ async def test_get_paper_references_not_found(client: SemanticScholarClient) -> 
         assert result == []
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references_rate_limit(client: SemanticScholarClient) -> None:
     """参考文献取得（レート制限）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -333,7 +333,7 @@ async def test_get_paper_references_rate_limit(client: SemanticScholarClient) ->
             await client.get_paper_references("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references_server_error(client: SemanticScholarClient) -> None:
     """参考文献取得（サーバーエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -349,7 +349,7 @@ async def test_get_paper_references_server_error(client: SemanticScholarClient) 
             await client.get_paper_references("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_get_paper_references_unexpected_error(client: SemanticScholarClient) -> None:
     """参考文献取得（予期しないエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -359,7 +359,7 @@ async def test_get_paper_references_unexpected_error(client: SemanticScholarClie
             await client.get_paper_references("test-paper-1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers_empty(client: SemanticScholarClient) -> None:
     """論文検索（空）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -373,7 +373,7 @@ async def test_search_papers_empty(client: SemanticScholarClient) -> None:
         assert len(result) == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers_with_filters(
     client: SemanticScholarClient,
     mock_paper_data: dict[str, Any],
@@ -411,7 +411,7 @@ async def test_search_papers_with_filters(
         assert params["venue"] == "ICML"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers_rate_limit(client: SemanticScholarClient) -> None:
     """論文検索（レート制限）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -427,7 +427,7 @@ async def test_search_papers_rate_limit(client: SemanticScholarClient) -> None:
             await client.search_papers("test query")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers_server_error(client: SemanticScholarClient) -> None:
     """論文検索（サーバーエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -443,7 +443,7 @@ async def test_search_papers_server_error(client: SemanticScholarClient) -> None
             await client.search_papers("test query")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_search_papers_unexpected_error(client: SemanticScholarClient) -> None:
     """論文検索（予期しないエラー）テスト."""
     with patch.object(client.client, 'get') as mock_get:
@@ -453,7 +453,7 @@ async def test_search_papers_unexpected_error(client: SemanticScholarClient) -> 
             await client.search_papers("test query")
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_close(client: SemanticScholarClient) -> None:
     """クライアント終了テスト."""
     with patch.object(client.client, 'aclose') as mock_aclose:

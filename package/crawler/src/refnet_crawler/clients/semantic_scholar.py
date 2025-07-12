@@ -35,7 +35,7 @@ class SemanticScholarClient:
             headers["x-api-key"] = self.api_key
         return headers
 
-    @retry(
+    @retry(  # type: ignore[misc]
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         reraise=True,
@@ -86,7 +86,7 @@ class SemanticScholarClient:
             logger.error("Unexpected error", paper_id=paper_id, error=str(e))
             raise ExternalAPIError(f"Unexpected error: {str(e)}") from e
 
-    @retry(
+    @retry(  # type: ignore[misc]
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         reraise=True,
@@ -145,7 +145,7 @@ class SemanticScholarClient:
             logger.error("Unexpected error", paper_id=paper_id, error=str(e))
             raise ExternalAPIError(f"Unexpected error: {str(e)}") from e
 
-    @retry(
+    @retry(  # type: ignore[misc]
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         reraise=True,

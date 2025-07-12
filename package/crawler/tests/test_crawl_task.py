@@ -29,7 +29,7 @@ class TestCrawlTaskBasic:
         except ImportError:
             pytest.fail("データベース関連のインポートに失敗しました")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_async_function_behavior(self) -> None:
         """非同期関数の動作テスト."""
         with patch('refnet_crawler.services.crawler_service.CrawlerService') as mock_service_class:

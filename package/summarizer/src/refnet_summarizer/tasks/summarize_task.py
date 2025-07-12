@@ -26,8 +26,8 @@ def process_pending_summarizations(self: Any) -> dict:
                 session.query(Paper)
                 .filter(
                     and_(
-                        Paper.crawl_status == "completed",
-                        Paper.summary_status == "pending",
+                        Paper.is_crawled,
+                        ~Paper.is_summarized,
                     )
                 )
                 .limit(5)
@@ -52,7 +52,7 @@ def process_pending_summarizations(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name='refnet_summarizer.tasks.summarize_task.summarize_paper')
+@celery_app.task(bind=True, name='refnet_summarizer.tasks.summarize_task.summarize_paper')  # type: ignore[misc]
 def summarize_paper(self: Any, paper_id: str) -> dict:
     """論文を要約し、次の処理をトリガー"""
     try:

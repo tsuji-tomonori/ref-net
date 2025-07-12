@@ -71,6 +71,7 @@ class OpenAIClient(AIClient):
             summary = response.choices[0].message.content
             if not summary:
                 raise ExternalAPIError("Empty response from OpenAI")
+            summary = str(summary)  # Ensure type is str
 
             logger.info(
                 "Summary generated successfully",
@@ -164,7 +165,7 @@ class AnthropicClient(AIClient):
             # Anthropicのレスポンスから適切にテキストを取得
             content_block = response.content[0]
             if hasattr(content_block, 'text'):
-                summary = content_block.text
+                summary = str(content_block.text)  # Ensure type is str
             else:
                 raise ExternalAPIError("Invalid response format from Anthropic")
             if not summary:

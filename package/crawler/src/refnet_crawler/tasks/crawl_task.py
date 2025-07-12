@@ -9,7 +9,7 @@ from refnet_shared.models.database import Paper
 from refnet_shared.models.database_manager import db_manager
 from refnet_shared.models.paper import Citation
 
-from refnet_crawler.services.semantic_scholar_client import SemanticScholarClient
+from refnet_crawler.clients.semantic_scholar import SemanticScholarClient
 
 logger = structlog.get_logger(__name__)
 
@@ -45,7 +45,7 @@ def check_and_crawl_new_papers(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name='refnet_crawler.tasks.crawl_task.crawl_paper')
+@celery_app.task(bind=True, name='refnet_crawler.tasks.crawl_task.crawl_paper')  # type: ignore[misc]
 def crawl_paper(self: Any, paper_id: str) -> dict:
     """論文をクロールし、次の処理をトリガー"""
     try:
