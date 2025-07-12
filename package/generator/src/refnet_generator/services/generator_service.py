@@ -25,6 +25,35 @@ class GeneratorService:
         self.output_dir = Path(settings.output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
+    def generate_paper_markdown_sync(
+        self, paper: Paper, references: list[Paper], citations: list[Paper]
+    ) -> str:
+        """論文のMarkdownコンテンツを同期的に生成して返す."""
+        try:
+            # 著者情報を取得（paperから直接取得）
+            authors = getattr(paper, 'authors', [])
+
+            # テンプレートレンダリング
+            template = self.jinja_env.get_template("paper.md.j2")
+            content = template.render(
+                paper=paper,
+                authors=authors,
+                references=references,
+                citations=citations,
+                generated_at=datetime.now().isoformat(),
+            )
+
+            logger.info("Paper markdown content generated", paper_id=paper.paper_id)
+            return str(content)
+
+        except Exception as e:
+            logger.error(
+                "Failed to generate paper markdown content",
+                paper_id=paper.paper_id,
+                error=str(e)
+            )
+            raise
+
     async def generate_markdown(self, paper_id: str) -> bool:
         """論文Markdown生成."""
         try:

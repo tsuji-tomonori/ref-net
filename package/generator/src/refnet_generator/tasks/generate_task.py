@@ -54,7 +54,7 @@ def generate_pending_markdowns(self: Any) -> dict:
         return {}
 
 
-@celery_app.task(bind=True, name='refnet_generator.tasks.generate_task.generate_markdown')
+@celery_app.task(bind=True, name='refnet_generator.tasks.generate_task.generate_markdown')  # type: ignore[misc]
 def generate_markdown(self: Any, paper_id: str) -> dict:
     """論文のMarkdownを生成"""
     try:
@@ -74,7 +74,7 @@ def generate_markdown(self: Any, paper_id: str) -> dict:
 
             # Markdown生成
             generator = GeneratorService()
-            markdown_content = generator.generate_paper_markdown(
+            markdown_content = generator.generate_paper_markdown_sync(
                 paper=paper,
                 references=references,
                 citations=citations
