@@ -99,7 +99,6 @@ jobs:
     - name: Build Docker images
       run: |
         docker build -t refnet-api -f package/api/Dockerfile package/
-        docker build -t refnet-shared package/shared/
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
