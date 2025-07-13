@@ -88,6 +88,33 @@ claude
 claude --version
 ```
 
+### Claude認証情報の設定
+
+Dockerコンテナ内でClaude Codeを使用するため、ホストマシンの認証情報をマウントする必要があります。
+
+```bash
+# ホストマシンでClaude認証情報を設定
+claude  # 初回実行時に認証
+
+# 認証情報ファイルの確認
+ls ~/.claude/.credentials.json
+```
+
+Docker Composeでは以下の設定により認証情報をマウントします：
+
+```yaml
+summarizer-worker:
+  volumes:
+    - ~/.claude/.credentials.json:/root/.claude/.credentials.json:ro
+  environment:
+    AI_PROVIDER: claude-code
+```
+
+**重要事項**:
+- 認証情報ファイルは読み取り専用（`:ro`）でマウント
+- コンテナ内のパス: `/root/.claude/.credentials.json`
+- `AI_PROVIDER=claude-code`を設定してClaude Codeを優先使用
+
 ### 設定ファイル
 
 ```yaml

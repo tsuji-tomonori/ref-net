@@ -140,6 +140,9 @@ services:
       REDIS__HOST: redis
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AI_PROVIDER: ${AI_PROVIDER:-auto}
+    volumes:
+      - ~/.claude/.credentials.json:/root/.claude/.credentials.json:ro
     depends_on:
       postgres:
         condition: service_healthy
