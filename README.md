@@ -83,15 +83,82 @@
 
 ## 🚀 クイックスタート
 
-### Docker環境での起動
+### 必要な環境変数
+
+本システムの実行には以下の環境変数が必要です。`.env`ファイルを作成して設定してください：
 
 ```bash
-# プロジェクトルートで実行
-docker-compose up -d
+# .env ファイルのサンプル
+# データベース設定
+DATABASE_PASSWORD=refnet_password
 
-# 各サービスの確認
-docker-compose ps
+# AI APIキー（論文要約機能に必要）
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Semantic Scholar API（論文取得に必要）
+SEMANTIC_SCHOLAR_API_KEY=your_semantic_scholar_api_key_here
+
+# 実行環境（デフォルト: development）
+NODE_ENV=development
+
+# Flower監視UI設定（オプション）
+FLOWER_USER=admin
+FLOWER_PASSWORD=secure_password
 ```
+
+### 最低限の実行手順
+
+1. **環境変数の設定**
+   ```bash
+   # .envファイルをプロジェクトルートに作成
+   cp .env.example .env  # サンプルファイルがない場合は上記の内容で作成
+
+   # 必要に応じてAPIキーを設定
+   vim .env
+   ```
+
+2. **Docker環境での起動**
+   ```bash
+   # プロジェクトルートで実行
+   docker-compose up -d --build
+
+   # 各サービスの確認
+   docker-compose ps
+
+   # ログの確認
+   docker-compose logs -f
+   ```
+
+3. **動作確認**
+   ```bash
+   # API健康チェック
+   curl http://localhost:8000/health
+
+   # Flower監視UI（ブラウザで確認）
+   open http://localhost:5555
+   ```
+
+4. **停止方法**
+   ```bash
+   # サービスの停止
+   docker-compose down
+
+   # データボリュームも削除する場合
+   docker-compose down -v
+   ```
+
+### 注意事項
+
+- **APIキー**: 要約機能を使用する場合は、OpenAIまたはAnthropicのAPIキーが必要です
+- **Semantic Scholar API**: 論文情報の取得にはSemantic Scholar APIキーが推奨されます（制限緩和のため）
+- **初回起動**: Dockerイメージのビルドに時間がかかる場合があります
+- **ポート**: 以下のポートが使用されます
+  - API: 8000
+  - PostgreSQL: 5432
+  - Redis: 6379
+  - Flower: 5555
+  - Nginx: 80, 443
 
 ### 監視UI
 
@@ -100,15 +167,9 @@ docker-compose ps
 Celeryタスクキューの監視とデバッグには[Flower](https://flower.readthedocs.io/)を使用します。
 
 - **URL**: [http://localhost:5555](http://localhost:5555)
-- **認証**: Basic認証（初期値: admin / secure_password）
+- **認証**: Basic認証（デフォルト: admin / secure_password）
 - **機能**:
   - タスクの実行状況確認
   - ワーカーのステータス監視
   - タスクの実行履歴とエラー情報
   - Celery Beatスケジュールの確認
-
-認証情報は`.env`ファイルで変更可能です：
-```bash
-FLOWER_USER=your_username
-FLOWER_PASSWORD=your_secure_password
-```
