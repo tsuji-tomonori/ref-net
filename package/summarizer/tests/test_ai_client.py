@@ -143,7 +143,8 @@ def test_create_ai_client_no_api_key():  # type: ignore
 @pytest.mark.asyncio
 async def test_claude_code_generate_summary_success():  # type: ignore
     """Claude Code要約生成成功テスト."""
-    with patch('subprocess.run') as mock_run:
+    with patch('subprocess.run') as mock_run, \
+         patch('pathlib.Path.exists', return_value=True):
         # バージョンチェック用のmock
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout="claude-code v1.0.0\n"),  # version check
@@ -163,7 +164,8 @@ async def test_claude_code_generate_summary_success():  # type: ignore
 @pytest.mark.asyncio
 async def test_claude_code_extract_keywords_success():  # type: ignore
     """Claude Codeキーワード抽出成功テスト."""
-    with patch('subprocess.run') as mock_run:
+    with patch('subprocess.run') as mock_run, \
+         patch('pathlib.Path.exists', return_value=True):
         # バージョンチェック用のmock
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout="claude-code v1.0.0\n"),  # version check
@@ -183,7 +185,8 @@ async def test_claude_code_extract_keywords_success():  # type: ignore
 @pytest.mark.asyncio
 async def test_claude_code_not_available():  # type: ignore
     """Claude Code利用不可テスト."""
-    with patch('subprocess.run') as mock_run:
+    with patch('subprocess.run') as mock_run, \
+         patch('pathlib.Path.exists', return_value=True):
         mock_run.side_effect = FileNotFoundError("claude command not found")
 
         with pytest.raises(ExternalAPIError) as exc_info:
@@ -197,7 +200,8 @@ def test_create_ai_client_with_claude_code():  # type: ignore
     with patch('refnet_summarizer.clients.ai_client.settings') as mock_settings:
         mock_settings.ai_provider = "claude-code"
 
-        with patch('subprocess.run') as mock_run:
+        with patch('subprocess.run') as mock_run, \
+             patch('pathlib.Path.exists', return_value=True):
             mock_run.return_value = MagicMock(returncode=0, stdout="claude-code v1.0.0\n")
 
             client = create_ai_client()
@@ -211,7 +215,8 @@ def test_create_ai_client_auto_fallback():  # type: ignore
         mock_settings.openai_api_key = "test-openai-key"
         mock_settings.anthropic_api_key = None
 
-        with patch('subprocess.run') as mock_run:
+        with patch('subprocess.run') as mock_run, \
+             patch('pathlib.Path.exists', return_value=True):
             # Claude Code利用不可をシミュレート
             mock_run.side_effect = FileNotFoundError("claude command not found")
 
@@ -325,7 +330,8 @@ async def test_openai_extract_keywords_error():  # type: ignore
 @pytest.mark.asyncio
 async def test_claude_code_extract_keywords_failure():  # type: ignore
     """Claude Codeキーワード抽出失敗テスト."""
-    with patch('subprocess.run') as mock_run:
+    with patch('subprocess.run') as mock_run, \
+         patch('pathlib.Path.exists', return_value=True):
         # バージョンチェックは成功
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout="claude-code v1.0.0\n"),  # version check
@@ -368,7 +374,8 @@ def test_create_ai_client_auto_fallback_to_anthropic():  # type: ignore
         mock_settings.openai_api_key = None
         mock_settings.anthropic_api_key = "test-anthropic-key"
 
-        with patch('subprocess.run') as mock_run:
+        with patch('subprocess.run') as mock_run, \
+             patch('pathlib.Path.exists', return_value=True):
             # Claude Code利用不可をシミュレート
             mock_run.side_effect = FileNotFoundError("claude command not found")
 

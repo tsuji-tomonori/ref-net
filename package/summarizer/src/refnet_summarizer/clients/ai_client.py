@@ -1,5 +1,6 @@
 """AI APIクライアント."""
 
+import os
 import subprocess
 import tempfile
 from abc import ABC, abstractmethod
@@ -234,14 +235,20 @@ class AnthropicClient(AIClient):
 class ClaudeCodeClient(AIClient):
     """Claude Code CLIクライアント."""
 
-    def __init__(self, claude_command: str = "claude") -> None:
+    def __init__(self, claude_command: str = "claude", credentials_path: str | None = None) -> None:
         """初期化."""
         self.claude_command = claude_command
+        self.credentials_path = credentials_path or "/root/.claude/.credentials.json"
         self._check_claude_availability()
 
     def _check_claude_availability(self) -> None:
         """Claude Codeの利用可能性チェック."""
         try:
+            # 認証情報ファイルの存在確認
+            if not Path(self.credentials_path).exists():
+                raise ExternalAPIError(
+                    f"Claude credentials file not found: {self.credentials_path}"
+                )
             result = subprocess.run(
                 [self.claude_command, "--version"],
                 capture_output=True,
@@ -250,7 +257,11 @@ class ClaudeCodeClient(AIClient):
             )
             if result.returncode != 0:
                 raise ExternalAPIError("Claude Code CLI not available")
-            logger.info("Claude Code CLI detected", version=result.stdout.strip())
+            logger.info(
+                "Claude Code CLI detected",
+                version=result.stdout.strip(),
+                credentials=self.credentials_path,
+            )
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             raise ExternalAPIError(f"Claude Code CLI not found: {str(e)}") from e
 
@@ -275,11 +286,14 @@ class ClaudeCodeClient(AIClient):
                     f"日本語で{max_tokens}文字以内で作成してください。"
                 )
 
+                # Claude認証情報のホームディレクトリを設定
+                env = {**dict(os.environ), "HOME": "/root"}
                 result = subprocess.run(
                     [self.claude_command, "-p", prompt, str(tmp_path)],
                     capture_output=True,
                     text=True,
                     timeout=120,  # 2分のタイムアウト
+                    env=env,
                 )
 
                 if result.returncode != 0:
@@ -328,11 +342,14 @@ class ClaudeCodeClient(AIClient):
                     f"技術用語、手法名、概念名を優先し、カンマ区切りで返してください。"
                 )
 
+                # Claude認証情報のホームディレクトリを設定
+                env = {**dict(os.environ), "HOME": "/root"}
                 result = subprocess.run(
                     [self.claude_command, "-p", prompt, str(tmp_path)],
                     capture_output=True,
                     text=True,
                     timeout=60,
+                    env=env,
                 )
 
                 if result.returncode != 0:
