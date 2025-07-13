@@ -1,0 +1,117 @@
+name: Security Vulnerability Scan
+
+on:
+  schedule:
+    # 毎日AM 9:00 (JST) に実行
+    - cron: '0 0 * * *'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: |
+        cd package/shared && uv sync
+        cd ../api && uv sync
+        cd ../crawler && uv sync
+        cd ../summarizer && uv sync
+        cd ../generator && uv sync
+        cd ../..
+        # Install safety and bandit for security scanning
+        pip install safety bandit
+
+    - name: Create reports directory
+      run: mkdir -p reports
+
+    - name: Run Safety scan
+      run: |
+        for pkg in shared api crawler summarizer generator; do
+          echo "Scanning package/$pkg"
+          cd package/$pkg
+          uv export --format=requirements-txt | safety check --stdin --json --output ../../reports/safety-$pkg.json || true
+          cd ../..
+        done
+      continue-on-error: true
+
+    - name: Run Bandit scan
+      run: |
+        for pkg in shared api crawler summarizer generator; do
+          echo "Scanning package/$pkg with Bandit"
+          cd package/$pkg
+          bandit -r src/ -f json -o ../../reports/bandit-$pkg.json || true
+          cd ../..
+        done
+      continue-on-error: true
+
+    - name: Generate vulnerability report
+      run: |
+        pip install structlog
+        python scripts/generate_vulnerability_report.py
+
+    - name: Upload scan results
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: reports/
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('reports/vulnerability_summary.md')) {
+            const summary = fs.readFileSync('reports/vulnerability_summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+          }
+
+  docker-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Docker images
+      run: |
+        docker build -t refnet-api -f package/api/Dockerfile package/
+
+    - name: Create reports directory
+      run: mkdir -p reports
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'refnet-api'
+        format: 'json'
+        output: 'reports/trivy-api.json'
+
+    - name: Upload Trivy results
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-scan-results
+        path: reports/trivy-*.json
