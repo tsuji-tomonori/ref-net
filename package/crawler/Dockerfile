@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Python依存関係
-COPY crawler/pyproject.toml crawler/uv.lock ./
+COPY crawler/pyproject.toml crawler/uv.lock crawler/README.md ./
 # shared パッケージをコピー（uv.sources で参照されているため）
 COPY shared/ ../shared/
 RUN pip install uv

@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Python依存関係
-COPY summarizer/pyproject.toml summarizer/uv.lock ./
+COPY summarizer/pyproject.toml summarizer/uv.lock summarizer/README.md ./
 # shared パッケージをコピー（uv.sources で参照されているため）
 COPY shared/ ../shared/
 RUN pip install uv
